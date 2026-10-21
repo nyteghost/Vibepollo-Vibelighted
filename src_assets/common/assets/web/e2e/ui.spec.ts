@@ -1328,7 +1328,7 @@ test('Linux shows an automatic update notice across pages and retries failed che
 }) => {
   await host(page);
   let unavailable = true;
-  await page.route('https://api.github.com/repos/Nonary/Vibepollo/releases?**', async (route) => {
+  await page.route('https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases?**', async (route) => {
     await route.fulfill(
       unavailable
         ? { status: 403, json: { message: 'API rate limit exceeded' } }
@@ -1339,7 +1339,7 @@ test('Linux shows an automatic update notice across pages and retries failed che
                 draft: false,
                 prerelease: false,
                 assets: [{ name: 'Vibepollo-x86_64.AppImage', state: 'uploaded', size: 100 }],
-                html_url: 'https://github.com/Nonary/Vibepollo/releases/tag/v1.1.0',
+                html_url: 'https://github.com/nyteghost/Vibepollo-Vibelighted/releases/tag/v1.1.0',
               },
             ],
           },
@@ -1355,7 +1355,7 @@ test('Linux shows an automatic update notice across pages and retries failed che
   await expect(notice.getByText('Vibepollo 1.1.0 is available')).toBeVisible();
   await expect(notice.getByRole('link', { name: 'Read release notes' })).toHaveAttribute(
     'href',
-    'https://github.com/Nonary/Vibepollo/releases/tag/v1.1.0',
+    'https://github.com/nyteghost/Vibepollo-Vibelighted/releases/tag/v1.1.0',
   );
   await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(notice.getByText('Vibepollo 1.1.0 is available')).toBeVisible();
@@ -1363,7 +1363,7 @@ test('Linux shows an automatic update notice across pages and retries failed che
 
 test('Linux stable install respects an explicit prerelease opt-out', async ({ page }) => {
   await host(page, 'linux', { notify_pre_releases: false });
-  await page.route('https://api.github.com/repos/Nonary/Vibepollo/releases?**', async (route) => {
+  await page.route('https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases?**', async (route) => {
     await route.fulfill({
       json: [{
         tag_name: 'v2.0.0-beta.1',
@@ -1374,7 +1374,7 @@ test('Linux stable install respects an explicit prerelease opt-out', async ({ pa
     });
   });
   const response = page.waitForResponse((response) =>
-    response.url().startsWith('https://api.github.com/repos/Nonary/Vibepollo/releases?'),
+    response.url().startsWith('https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases?'),
   );
   await page.goto('/v2/');
   await (await response).finished();
@@ -1397,14 +1397,14 @@ test('Windows default nightly notification validates metadata and dismissal surv
     if (request.url().includes('/api/updates/nightly-metadata') || request.url().includes('/releases/download/'))
       assetRequests.push(request.url());
   });
-  await page.route('https://api.github.com/repos/Nonary/Vibepollo/releases?**', (route) =>
+  await page.route('https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases?**', (route) =>
     route.fulfill({
       json: [{
         tag_name: tag,
         body: `<!-- nightly-identity: ${JSON.stringify(metadata)} -->\n`,
         draft: false,
         prerelease: true,
-        html_url: `https://github.com/Nonary/Vibepollo/releases/tag/${tag}`,
+        html_url: `https://github.com/nyteghost/Vibepollo-Vibelighted/releases/tag/${tag}`,
         assets: ['VibepolloSetup.exe', 'nightly-metadata.json', 'SHA256SUMS'].map((name) => ({
           name,
           state: 'uploaded',
@@ -1432,7 +1432,7 @@ test('Windows prerelease install opts out persistently and still receives a stab
   await host(page, 'windows', { notify_pre_releases: 'disabled' }, true, undefined, {
     version: '2.0.0-beta.1',
   });
-  await page.route('https://api.github.com/repos/Nonary/Vibepollo/releases?**', (route) =>
+  await page.route('https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases?**', (route) =>
     route.fulfill({
       json: [
         {
@@ -1461,7 +1461,7 @@ test('Windows prerelease install opts out persistently and still receives a stab
 });
 
 // Both production UIs use one origin so their actual shared dismissal policy is exercised.
-const updaterReleasesUrl = 'https://api.github.com/repos/Nonary/Vibepollo/releases';
+const updaterReleasesUrl = 'https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases';
 type UpdaterReleaseFixture = {
   tag_name: string;
   draft: boolean;
@@ -1477,7 +1477,7 @@ function updaterRelease(tag: string, assets = ['VibepolloSetup.exe']): UpdaterRe
     tag_name: tag,
     draft: false,
     prerelease: tag.startsWith('daily-') || /-(alpha|beta|rc)/.test(tag),
-    html_url: `https://github.com/Nonary/Vibepollo/releases/tag/${tag}`,
+    html_url: `https://github.com/nyteghost/Vibepollo-Vibelighted/releases/tag/${tag}`,
     name: `Fixture ${tag}`,
     body: `Release notes for ${tag}`,
     assets: assets.map((name) => ({ name, state: 'uploaded', size: 100 })),
