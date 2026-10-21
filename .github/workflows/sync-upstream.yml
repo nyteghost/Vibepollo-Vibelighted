@@ -1,0 +1,58 @@
+name: Sync upstream
+# Keeps a branch named upstream-main identical to the default branch of the repository
+# this fork came from (Nonary/Vibepollo), so you can always see its latest changes.
+# Nothing is merged into master automatically. When master is behind, a pull request
+# from upstream-main into master is opened (or left open) for you to review.
+#
+# Runs every 6 hours and can be started by hand from the Actions tab.
+#
+# Optional: add a repository secret SYNC_TOKEN (personal access token with "repo" and
+# "workflow" scopes). Without it, GitHub refuses to update upstream-main on days when
+# upstream changed files under .github/workflows, and the run fails with a clear message.
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+      UPSTREAM: Nonary/Vibepollo
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - name: Mirror upstream into upstream-main
+        shell: bash
+        run: |
+          UP_BRANCH=$(gh api "repos/${UPSTREAM}" --jq .default_branch)
+          git remote add upstream "https://github.com/${UPSTREAM}.git"
+          git fetch --quiet upstream "${UP_BRANCH}"
+          git push --force origin "upstream/${UP_BRANCH}:refs/heads/upstream-main"
+          echo "BEHIND=$(git rev-list --count HEAD..upstream/${UP_BRANCH})" >> "$GITHUB_ENV"
+
+      - name: Open a pull request when master is behind
+        if: env.BEHIND != '0'
+        shell: bash
+        run: |
+          if [ -n "$(gh pr list --state open --head upstream-main --json number --jq '.[].number')" ]; then
+            echo "A pull request from upstream-main is already open."
+            exit 0
+          fi
+          gh pr create --base master --head upstream-main \
+            --title "Sync with upstream Vibepollo" \
+            --body "master is ${BEHIND} commit(s) behind ${UPSTREAM}. Review, resolve any conflicts, then merge."
