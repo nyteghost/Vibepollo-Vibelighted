@@ -577,9 +577,9 @@ const availableVersion = computed(() => {
 });
 const availableReleaseUrl = computed(() => {
   const url = availableUpdate.value?.url;
-  return url?.startsWith('https://github.com/Nonary/Vibepollo/releases/')
+  return url?.startsWith('https://github.com/nyteghost/Vibepollo-Vibelighted/releases/')
     ? url
-    : 'https://github.com/Nonary/Vibepollo/releases';
+    : 'https://github.com/nyteghost/Vibepollo-Vibelighted/releases';
 });
 const notifyPreReleases = ref(true);
 const installedUpdateVersion = ref('');

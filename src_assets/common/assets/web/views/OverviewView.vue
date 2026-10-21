@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
             >{{ t('ui.overview.actions.reportBug') }}<UiIcon name="external-link" :size="14"
           /></a>
           <a
-            href="https://github.com/Nonary/Vibepollo/releases/latest"
+            href="https://github.com/nyteghost/Vibepollo-Vibelighted/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             >{{ t('ui.overview.actions.checkUpdates') }}<UiIcon name="external-link" :size="14"
