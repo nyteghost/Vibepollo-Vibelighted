@@ -7,6 +7,8 @@
 
 // standard includes
 #include <algorithm>
+#include <array>
+#include <cctype>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -6551,6 +6553,131 @@ launch_session->exact_target_hold.reset();
     return;
   }
 
+  namespace {
+    constexpr std::size_t file_upload_max_bytes = 1024ull * 1024ull * 1024ull;  // 1 GiB
+
+    /**
+     * Reduce a client-supplied file name to a safe single path component.
+     * Returns an empty string when nothing usable remains.
+     */
+    std::string sanitize_upload_name(std::string name) {
+      // Keep only the last path component, whichever separator the client used.
+      auto slash = name.find_last_of("/\\");
+      if (slash != std::string::npos) name = name.substr(slash + 1);
+
+      std::string out;
+      for (unsigned char c : name) {
+        if (c < 0x20 || c == 0x7f || std::string_view("<>:\"|?*").find(static_cast<char>(c)) != std::string_view::npos) {
+          out += '_';
+        } else {
+          out += static_cast<char>(c);
+        }
+      }
+      // Windows ignores trailing dots and spaces, so strip them.
+      while (!out.empty() && (out.back() == '.' || out.back() == ' ')) out.pop_back();
+      while (!out.empty() && out.front() == ' ') out.erase(out.begin());
+      if (out.size() > 200) out.resize(200);
+      if (out.empty() || out == "." || out == "..") return {};
+
+      // Reserved Windows device names (CON, NUL, COM1, ...) with or without an extension.
+      std::string stem = out.substr(0, out.find('.'));
+      for (auto &ch : stem) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+      static const std::array<std::string_view, 22> reserved {
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+      };
+      if (std::find(reserved.begin(), reserved.end(), std::string_view(stem)) != reserved.end()) out.insert(out.begin(), '_');
+      return out;
+    }
+  }  // namespace
+
+  /**
+   * Receive a file from a streaming client: POST /actions/upload?name=<file name>, raw body.
+   * The client needs the "Upload files" permission and an active stream. The file is saved
+   * in the configured file_transfer_dir under a safe name and never overwrites an existing
+   * file; the saved name is returned as plain text.
+   */
+  void uploadFile(resp_https_t response, req_https_t request) {
+    print_req<SunshineHTTPS>(request);
+
+    auto verified_client = get_verified_cert(request);
+
+    if (!has_client_perm(verified_client, PERM::_allow_view) || !has_client_perm(verified_client, PERM::file_upload)) {
+      log_permission_denied("Upload File"sv, "Upload files"sv, verified_client);
+      response->write(SimpleWeb::StatusCode::client_error_unauthorized);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    std::list<std::string> connected_uuids = rtsp_stream::get_all_session_uuids();
+    if (std::find(connected_uuids.begin(), connected_uuids.end(), verified_client->uuid) == connected_uuids.end()) {
+      BOOST_LOG(info) << "[file] Upload refused: client ["sv << verified_client->name << "] is not in an active stream (active sessions: "sv << connected_uuids.size() << ")"sv;
+      response->write(SimpleWeb::StatusCode::client_error_forbidden);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    auto args = request->parse_query_string();
+    const std::string requested_name = get_arg(args, "name", "");
+    const std::string name = sanitize_upload_name(requested_name);
+    if (name.empty()) {
+      BOOST_LOG(info) << "[file] Upload by ["sv << verified_client->name << "] refused: no usable file name in ["sv << requested_name << "]"sv;
+      response->write(SimpleWeb::StatusCode::client_error_bad_request);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    const std::string content = request->content.string();
+    if (content.size() > file_upload_max_bytes) {
+      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: "sv << content.size() << " bytes is over the "sv << file_upload_max_bytes << " byte limit"sv;
+      response->write(SimpleWeb::StatusCode::client_error_payload_too_large);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    std::error_code ec;
+    std::filesystem::path dir = config::sunshine.file_transfer_dir;
+    std::filesystem::create_directories(dir, ec);
+    if (ec) {
+      BOOST_LOG(warning) << "[file] Cannot create the receive folder ["sv << dir.string() << "]: "sv << ec.message();
+      response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    // Never overwrite: "name.ext", then "name (1).ext", "name (2).ext", ...
+    const std::filesystem::path base_path {name};
+    std::filesystem::path target = dir / base_path;
+    for (int n = 1; std::filesystem::exists(target, ec) && n < 1000; ++n) {
+      target = dir / (base_path.stem().string() + " (" + std::to_string(n) + ")" + base_path.extension().string());
+    }
+    if (std::filesystem::exists(target, ec)) {
+      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: too many files named ["sv << name << "]"sv;
+      response->write(SimpleWeb::StatusCode::client_error_conflict);
+      response->close_connection_after_response = true;
+      return;
+    }
+
+    {
+      std::ofstream out(target, std::ios::binary | std::ios::trunc);
+      out.write(content.data(), static_cast<std::streamsize>(content.size()));
+      out.flush();
+      if (!out) {
+        BOOST_LOG(warning) << "[file] Writing ["sv << target.string() << "] failed after "sv << content.size() << " bytes (disk full or no permission?)"sv;
+        out.close();
+        std::filesystem::remove(target, ec);
+        response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
+        response->close_connection_after_response = true;
+        return;
+      }
+    }
+
+    BOOST_LOG(info) << "[file] Received ["sv << target.filename().string() << "] ("sv << content.size() << " bytes) from ["sv << verified_client->name << "] into "sv << dir.string();
+    SimpleWeb::CaseInsensitiveMultimap headers;
+    headers.emplace("Content-Type", "text/plain; charset=utf-8");
+    response->write(SimpleWeb::StatusCode::success_ok, target.filename().string(), headers);
+  }
+
   void setBitrate(resp_https_t response, req_https_t request, const verified_client_t &verified_client) {
     print_req<SunshineHTTPS>(request);
 
@@ -7054,6 +7181,7 @@ launch_session->exact_target_hold.reset();
     };
     https_server.resource["^/actions/clipboard$"]["GET"] = getClipboard;
     https_server.resource["^/actions/clipboard$"]["POST"] = setClipboard;
+    https_server.resource["^/actions/upload$"]["POST"] = uploadFile;
     https_server.resource["^/bitrate$"]["GET"] = [run_blocking_nvhttp](auto response, auto request) {
       bitrate_policy::run(
         response, request,
@@ -7079,6 +7207,8 @@ launch_session->exact_target_hold.reset();
     https_server.config.reuse_address = true;
     https_server.config.address = net::get_bind_address(address_family);
     https_server.config.port = port_https;
+    // Uploaded files arrive as a single request body held in memory, so cap it.
+    https_server.config.max_request_streambuf_size = file_upload_max_bytes + 64 * 1024;
 
     http_server.default_resource["GET"] = not_found<SimpleWeb::HTTP>;
     http_server.default_resource["POST"] = not_found<SimpleWeb::HTTP>;
