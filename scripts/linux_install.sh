@@ -17,7 +17,7 @@
 #
 # Options:
 #   --version VERSION     Install this exact release (for example 2.0.0).
-#   --package FILE        Install a local vibepollo-*.pkg.tar.zst instead of downloading.
+#   --package FILE        Install a local vibebeam-*.pkg.tar.zst instead of downloading.
 #   --stable              Ignore pre-releases when picking the newest GitHub release.
 #   --no-repo             Skip the signed pacman repository and use GitHub releases.
 #   --skip-checks         Continue past failed requirement checks (not recommended).
@@ -29,6 +29,7 @@
 # Re-running the script is safe; it only installs what is missing.
 
 set -euo pipefail
+shopt -s extglob
 
 # Requirement and package-ownership checks parse command output.
 export LC_ALL=C
@@ -724,9 +725,9 @@ install_from_repo() {
   # under the package manager's transaction lock.
   pacman -Sw "${replacement_confirm[@]}" --cachedir "$workdir/cache" "${repo_target[@]}"
   mapfile -d '' -t candidates < <(find "$workdir/cache" -maxdepth 1 -type f \
-    -name 'vibepollo-*.pkg.tar.*' ! -name '*.sig' -print0)
+    \( -name 'vibebeam-*.pkg.tar.*' -o -name 'vibepollo-*.pkg.tar.*' \) ! -name '*.sig' -print0)
   [[ ${#candidates[@]} == 1 ]] || die 'expected exactly one verified Vibepollo package in the private cache'
-  [[ $(pacman -Qp -- "${candidates[0]}") == 'vibepollo '* ]] ||
+  [[ $(pacman -Qp -- "${candidates[0]}") == @(vibebeam|vibepollo)' '* ]] ||
     die 'cached package identity is not Vibepollo'
   stage_upgrade_guard "${candidates[0]}"
   prepare_package_hook_dirs
@@ -893,7 +894,7 @@ install_from_package() {
   [[ -f "$local_package" ]] || die "package file not found: ${local_package}"
   local identity package_path
   identity=$(pacman -Qp -- "$local_package") || die 'could not inspect the local package'
-  [[ "$identity" == 'vibepollo '* && "$identity" != *$'\n'* ]] || die 'local package is not Vibepollo'
+  [[ "$identity" == @(vibebeam|vibepollo)' '* && "$identity" != *$'\n'* ]] || die 'local package is not Vibepollo'
   package_path=$(readlink -f -- "$local_package") || die 'cannot resolve the local package path'
   stage_upgrade_guard "$local_package"
   prepare_package_hook_dirs
@@ -926,7 +927,7 @@ remove_vibepollo() {
     die '--remove requires --package FILE containing the incoming shutdown policy'
   local identity
   identity=$(pacman -Qp -- "$local_package") || die 'could not inspect the removal policy package'
-  [[ "$identity" == 'vibepollo '* && "$identity" != *$'\n'* ]] || die 'removal policy package is not Vibepollo'
+  [[ "$identity" == @(vibebeam|vibepollo)' '* && "$identity" != *$'\n'* ]] || die 'removal policy package is not Vibepollo'
   workdir=$(mktemp -d /tmp/vibepollo-removal.XXXXXXXX)
   stage_upgrade_guard "$local_package"
   prepare_package_hook_dirs

@@ -93,7 +93,7 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >"incoming/${package_name}"
 
           package_info="$(bsdtar -xOf "incoming/${package_name}" .PKGINFO)"
-          grep -Fqx 'pkgname = vibepollo' <<<"${package_info}"
+          grep -Fqx 'pkgname = vibebeam' <<<"${package_info}"
           # Keep this aligned with special_package_configuration.cmake: Arch
           # pkgver strips SemVer's prerelease separator.
           arch_package_version=${release_version//-/}
@@ -201,7 +201,7 @@ jobs:
 
           # Prune older payloads only after the new indexes have been signed.
           shopt -s nullglob
-          for old_package in vibepollo-*.pkg.tar.zst vibepollo-*.pkg.tar.zst.sig; do
+          for old_package in vibebeam-*.pkg.tar.zst vibebeam-*.pkg.tar.zst.sig vibepollo-*.pkg.tar.zst vibepollo-*.pkg.tar.zst.sig; do
             if [[ "${old_package}" != "${PACKAGE_NAME}" && "${old_package}" != "${PACKAGE_NAME}.sig" ]]; then
               rm -f -- "${old_package}"
             fi

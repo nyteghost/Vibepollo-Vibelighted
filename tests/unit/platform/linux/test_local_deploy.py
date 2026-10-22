@@ -370,7 +370,7 @@ class NativePackageTests(unittest.TestCase):
             deploy.build_native_package(candidate, destination, VERSION)
             with tarfile.open(destination) as result:
                 info = result.extractfile('.PKGINFO').read().decode()
-                self.assertIn('pkgname = vibepollo\n', info)
+                self.assertIn('pkgname = vibebeam\n', info)
                 self.assertIn('pkgver = 1.19.0.beta.5-1\n', info)
                 self.assertIn('depend = dkms\n', info)
                 self.assertIn('conflict = sunshine\n', info)

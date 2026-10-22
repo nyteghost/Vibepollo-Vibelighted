@@ -575,7 +575,7 @@ jobs:
           TAG_NAME: ${{ needs.resolve_release.outputs.tag_name }}
         run: |
           set -euo pipefail
-          mapfile -t packages < <(find arch-artifacts -type f -name 'vibepollo-*.pkg.tar.zst' ! -name '*-debug-*' | sort)
+          mapfile -t packages < <(find arch-artifacts -type f -name 'vibebeam-*.pkg.tar.zst' ! -name '*-debug-*' | sort)
           if (( ${#packages[@]} != 1 )); then
             echo "::error::Expected exactly one non-debug Arch package, found ${#packages[@]}."
             find arch-artifacts -type f -print >&2

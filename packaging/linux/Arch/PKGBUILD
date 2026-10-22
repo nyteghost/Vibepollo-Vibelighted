@@ -6,7 +6,8 @@
 
 : "${_commit:=@GITHUB_COMMIT@}"
 
-pkgname='vibepollo'
+pkgname='vibebeam'
+_src='vibepollo'
 pkgver=@SUNSHINE_ARCH_PKGVER@@SUNSHINE_SUB_VERSION@
 pkgrel=1
 pkgdesc="@PROJECT_DESCRIPTION@"
@@ -96,10 +97,11 @@ optdepends=(
   'shim-signed: provide a signed shim boot chain for MOK trust on strict Secure Boot systems'
 )
 
-provides=('sunshine')
-conflicts=('sunshine')
+provides=('vibepollo' 'sunshine')
+conflicts=('vibepollo' 'sunshine')
+replaces=('vibepollo')
 
-source=("$pkgname::git+@GITHUB_CLONE_URL@#commit=${_commit}")
+source=("$_src::git+@GITHUB_CLONE_URL@#commit=${_commit}")
 sha256sums=('SKIP')
 
 # Options Handling
@@ -138,7 +140,7 @@ if [ -n "${optdepends+x}" ]; then
 fi
 
 prepare() {
-    cd "$pkgname"
+    cd "$_src"
     if [[ -n "${_validation_expected_tree:-}" ]]; then
       [[ $(git rev-parse HEAD) == "${_commit}" ]] || { echo 'Extracted source commit mismatch.' >&2; return 1; }
       [[ $(git rev-parse 'HEAD^{tree}') == "${_validation_expected_tree}" ]] || { echo 'Extracted source tree mismatch.' >&2; return 1; }
@@ -164,7 +166,7 @@ build() {
     export MAKEFLAGS="${MAKEFLAGS:--j$(nproc)}"
 
     local _cmake_options=(
-      -S "$pkgname"
+      -S "$_src"
       -B build
       -G Ninja
       -Wno-dev
@@ -213,7 +215,7 @@ build() {
     if [[ "${_build_tests:-ON}" != "OFF" ]]; then
       # Compile all configured components before expensive host/CUDA compilation.
       # File API discovers new test targets; final full build and CTest still run.
-      python3 "$srcdir/$pkgname/scripts/build-linux-component-tests.py" build
+      python3 "$srcdir/$_src/scripts/build-linux-component-tests.py" build
     fi
 
     cmake --build build
