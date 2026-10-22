@@ -1,0 +1,101 @@
+---
+name: Publish release
+# Publishes the unsigned Windows portable ZIP from a successful CI build to this
+# repository's Releases page, so Vibebeam's update check (and your own installs) have
+# something to find. It never signs anything and does not use any secrets besides the
+# built-in token.
+#
+# How to use it:
+#   1. Run the "CI" workflow on the commit you want to release (Actions -> CI -> Run
+#      workflow) and wait for it to finish. CI artifacts are kept for only one day.
+#   2. Run this workflow with a tag such as v1.0.0. Leave "run_id" empty to use the newest
+#      successful CI run that still has a portable ZIP, or paste a specific run id.
+# If the release already exists, the ZIP is added to it (an existing file is replaced).
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update, for example v1.0.0
+        required: true
+        type: string
+      run_id:
+        description: CI run id to publish from (empty = newest successful run with a portable ZIP)
+        required: false
+        type: string
+      prerelease:
+        description: Mark the release as a pre-release
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      RUN_ID_INPUT: ${{ inputs.run_id }}
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - name: Check the tag name
+        shell: bash
+        run: |
+          if [[ ! "${TAG}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '${TAG}' should look like v1.2.3 (optionally with a suffix such as -beta.1)."
+            exit 1
+          fi
+
+      - name: Find the CI run
+        id: find
+        shell: bash
+        run: |
+          run_id="${RUN_ID_INPUT}"
+          if [[ -z "${run_id}" ]]; then
+            for candidate in $(gh run list --repo "${GITHUB_REPOSITORY}" --workflow ci.yml --status success --limit 30 --json databaseId --jq '.[].databaseId'); do
+              count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${candidate}/artifacts" \
+                --jq '[.artifacts[] | select((.name | startswith("ci-portable-")) and (.expired | not))] | length')
+              if [[ "${count}" -gt 0 ]]; then
+                run_id="${candidate}"
+                break
+              fi
+            done
+          fi
+          if [[ -z "${run_id}" ]]; then
+            echo "::error::No successful CI run with an unexpired portable ZIP was found. Run the CI workflow first (artifacts are kept for one day)."
+            exit 1
+          fi
+          sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq .head_sha)
+          echo "Using CI run ${run_id} at commit ${sha}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download the portable ZIP
+        shell: bash
+        run: |
+          mkdir -p dl
+          gh run download "${{ steps.find.outputs.run_id }}" --repo "${GITHUB_REPOSITORY}" --pattern 'ci-portable-*' --dir dl
+          find dl -type f -name '*.zip' -print
+          if [[ -z "$(find dl -type f -name '*.zip')" ]]; then
+            echo "::error::The CI run has no portable ZIP artifact."
+            exit 1
+          fi
+
+      - name: Create or update the release
+        shell: bash
+        run: |
+          mapfile -t assets < <(find dl -type f -name '*.zip')
+          flags=()
+          if [[ "${PRERELEASE}" == "true" ]]; then flags+=(--prerelease); fi
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${assets[@]}" --repo "${GITHUB_REPOSITORY}" --clobber
+          else
+            gh release create "${TAG}" "${assets[@]}" --repo "${GITHUB_REPOSITORY}" \
+              --target "${{ steps.find.outputs.sha }}" --title "${TAG}" --generate-notes "${flags[@]}"
+          fi
+          echo "Release ${TAG} now has:"
+          gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name'
