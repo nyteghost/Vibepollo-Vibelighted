@@ -28,8 +28,8 @@ import urllib.request
 CONTROLLER = "vibepollo-session-controller.service"
 HOST = "vibepollo.service"
 SCOPES = {"/api/session/status": "GET", "/api/apps/close": "POST"}
-RELEASES_API = "https://api.github.com/repos/nyteghost/Vibepollo-Vibelighted/releases"
-RELEASES_PAGE = "https://github.com/nyteghost/Vibepollo-Vibelighted/releases"
+RELEASES_API = "https://api.github.com/repos/nyteghost/vibebeam/releases"
+RELEASES_PAGE = "https://github.com/nyteghost/vibebeam/releases"
 
 
 class CertificateChanged(Exception):

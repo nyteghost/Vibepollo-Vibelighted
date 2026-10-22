@@ -577,9 +577,9 @@ const availableVersion = computed(() => {
 });
 const availableReleaseUrl = computed(() => {
   const url = availableUpdate.value?.url;
-  return url?.startsWith('https://github.com/nyteghost/Vibepollo-Vibelighted/releases/')
+  return url?.startsWith('https://github.com/nyteghost/vibebeam/releases/')
     ? url
-    : 'https://github.com/nyteghost/Vibepollo-Vibelighted/releases';
+    : 'https://github.com/nyteghost/vibebeam/releases';
 });
 const notifyPreReleases = ref(true);
 const installedUpdateVersion = ref('');

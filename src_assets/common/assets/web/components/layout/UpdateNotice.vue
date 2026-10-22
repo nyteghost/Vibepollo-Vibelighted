@@ -91,9 +91,9 @@ function dismiss(): void {
     >
       <a
         :href="
-          available.url?.startsWith('https://github.com/nyteghost/Vibepollo-Vibelighted/releases/')
+          available.url?.startsWith('https://github.com/nyteghost/vibebeam/releases/')
             ? available.url
-            : 'https://github.com/nyteghost/Vibepollo-Vibelighted/releases'
+            : 'https://github.com/nyteghost/vibebeam/releases'
         "
         target="_blank"
         rel="noopener noreferrer"
