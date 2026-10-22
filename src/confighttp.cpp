@@ -85,6 +85,7 @@
   #include "platform/linux/capture_status.h"
   #include "platform/linux/private_display.h"
   #include "src/platform/linux/display_backend.h"
+  #include "src/platform/linux/display_health.h"
 #endif
 
 #include <nlohmann/json.hpp>
@@ -4718,6 +4719,61 @@ namespace confighttp {
   }
 #endif
 
+#if defined(__linux__)
+  /**
+   * @brief Explain whether the Linux virtual display can work (read-only, no privileges needed).
+   * @api_examples{/api/linux/display-health| GET| null}
+   */
+  void getLinuxDisplayHealth(resp_https_t response, req_https_t request) {
+    if (!authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+    send_response(response, platf::linux_display_health::collect());
+  }
+
+  /**
+   * @brief Plain-text diagnostics bundle: version, display health and the end of the host log.
+   * @api_examples{/api/linux/diagnostics| GET| null}
+   */
+  void getLinuxDiagnostics(resp_https_t response, req_https_t request) {
+    if (!authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+
+    std::ostringstream text;
+    text << "Vibebeam diagnostics\n";
+    text << "Version: " << PROJECT_VERSION << "\n\n";
+    text << platf::linux_display_health::to_text(platf::linux_display_health::collect()) << "\n";
+    text << "---- last host log lines ----\n";
+    const auto log_path = logging::current_log_file();
+    if (!log_path.empty()) {
+      const auto content = file_handler::read_file(log_path.string().c_str());
+      constexpr std::size_t max_lines = 400;
+      std::size_t cursor = content.size();
+      std::size_t lines = 0;
+      while (cursor > 0 && lines < max_lines) {
+        const auto newline = content.rfind('\n', cursor - 1);
+        if (newline == std::string::npos) {
+          cursor = 0;
+          break;
+        }
+        cursor = newline;
+        ++lines;
+      }
+      text << content.substr(cursor == 0 ? 0 : cursor + 1);
+    }
+
+    SimpleWeb::CaseInsensitiveMultimap headers;
+    headers.emplace("Content-Type", "text/plain; charset=utf-8");
+    headers.emplace("Content-Disposition", "attachment; filename=\"vibebeam-diagnostics.txt\"");
+    headers.emplace("X-Frame-Options", "DENY");
+    headers.emplace("Cache-Control", "no-store");
+    response->write(SimpleWeb::StatusCode::success_ok, text.str(), headers);
+  }
+#endif
+
   /**
    * @brief Get the logs from the log file.
    * @param response The HTTP response object.
@@ -6324,6 +6380,10 @@ namespace confighttp {
     register_api_route("^/api/otp$", "POST", getOTP);
     register_api_route("^/api/apps$", "GET", getApps);
     register_api_route("^/api/logs$", "GET", getLogs);
+#if defined(__linux__)
+    register_api_route("^/api/linux/display-health$", "GET", getLinuxDisplayHealth);
+    register_api_route("^/api/linux/diagnostics$", "GET", getLinuxDiagnostics);
+#endif
     register_api_route("^/api/browse$", "GET", browseDirectory);
     register_api_route("^/api/csrf-token$", "GET", getCSRFToken);
     register_api_route("^/api/apps$", "POST", saveApp);
