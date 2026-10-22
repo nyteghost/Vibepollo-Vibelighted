@@ -625,7 +625,7 @@ test('mobile navigation keeps hidden controls out of the tab order and releases 
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeFocused();
   await menu.click();
-  const brand = navigation.getByRole('link', { name: 'Vibepollo overview' });
+  const brand = navigation.getByRole('link', { name: 'Vibebeam overview' });
   await expect(brand).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(navigation.getByRole('button', { name: 'Logout' })).toBeFocused();
@@ -1352,13 +1352,13 @@ test('Linux shows an automatic update notice across pages and retries failed che
   ).toBeVisible();
   unavailable = false;
   await notice.getByRole('button', { name: 'Check for updates' }).click();
-  await expect(notice.getByText('Vibepollo 1.1.0 is available')).toBeVisible();
+  await expect(notice.getByText('Vibebeam 1.1.0 is available')).toBeVisible();
   await expect(notice.getByRole('link', { name: 'Read release notes' })).toHaveAttribute(
     'href',
     'https://github.com/nyteghost/vibebeam/releases/tag/v1.1.0',
   );
   await page.getByRole('link', { name: 'Library', exact: true }).click();
-  await expect(notice.getByText('Vibepollo 1.1.0 is available')).toBeVisible();
+  await expect(notice.getByText('Vibebeam 1.1.0 is available')).toBeVisible();
 });
 
 test('Linux stable install respects an explicit prerelease opt-out', async ({ page }) => {
@@ -1415,7 +1415,7 @@ test('Windows default nightly notification validates metadata and dismissal surv
   );
   await page.goto('/v2/');
   const notice = page.locator('.update-notice');
-  await expect(notice.getByText(`Vibepollo ${tag} is available`)).toBeVisible();
+  await expect(notice.getByText(`Vibebeam ${tag} is available`)).toBeVisible();
   await notice.getByRole('button', { name: 'Dismiss this update' }).click();
   await expect(notice).toHaveCount(0);
   const checked = page.waitForResponse((response) => response.url().includes('/releases?per_page=100&page=1'));
@@ -1452,11 +1452,11 @@ test('Windows prerelease install opts out persistently and still receives a stab
   );
   await page.goto('/v2/');
   await expect(
-    page.locator('.update-notice').getByText('Vibepollo 2.0.0 is available'),
+    page.locator('.update-notice').getByText('Vibebeam 2.0.0 is available'),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.locator('.update-notice').getByText('Vibepollo 2.0.0 is available'),
+    page.locator('.update-notice').getByText('Vibebeam 2.0.0 is available'),
   ).toBeVisible();
 });
 
@@ -1636,7 +1636,7 @@ test('Apollo updater paginates before selecting a complete release', async ({ pa
       : [updaterRelease('v2.0.0')] });
   });
   await page.goto('/v2/');
-  await expect(page.locator('.update-notice')).toContainText('Vibepollo 2.0.0 is available');
+  await expect(page.locator('.update-notice')).toContainText('Vibebeam 2.0.0 is available');
   expect(pages).toEqual(['1', '2']);
 });
 
@@ -1669,7 +1669,7 @@ test('Apollo updater interval zero still permits an explicit retry without resum
   await expect(notice.getByText('Release information is unavailable. Try again later.')).toBeVisible();
   config.update_check_interval = 0;
   await notice.getByRole('button', { name: 'Check for updates', exact: true }).click();
-  await expect(notice.getByText('Vibepollo 2.0.0 is available')).toBeVisible();
+  await expect(notice.getByText('Vibebeam 2.0.0 is available')).toBeVisible();
   expect(calls).toBe(2);
   await page.clock.fastForward(300001);
   expect(calls).toBe(2);
@@ -1753,7 +1753,7 @@ test('legacy updater orders embedded daily versions and shares dismissal across 
   await expect(page.locator('.update-notice')).toHaveCount(0);
   releases.unshift(later.release);
   await page.reload();
-  await expect(page.locator('.update-notice')).toContainText(`Vibepollo ${later.metadata.tag} is available`);
+  await expect(page.locator('.update-notice')).toContainText(`Vibebeam ${later.metadata.tag} is available`);
   await expect(page.locator('.update-notice').getByRole('link', { name: 'Read release notes' })).toHaveAttribute('href', later.release.html_url);
   await page.locator('.sidebar__legacy[href="/"]').click();
   await expect(notice).toContainText(later.metadata.version);

@@ -438,7 +438,7 @@ test('advanced encoder settings have actual fields and platform-aware options', 
   );
 });
 
-test('server command rows round-trip for the Vibepollo editor', () => {
+test('server command rows round-trip for the Vibebeam editor', () => {
   const server = normalizeServerCommandRows(
     JSON.stringify([{ name: 'Open overlay', cmd: 'overlay.exe', elevated: true }]),
     'windows',
