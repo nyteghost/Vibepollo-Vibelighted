@@ -6,6 +6,9 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 // standard includes
+#if defined(__linux__)
+  #include <unistd.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -4003,7 +4006,12 @@ namespace nvhttp {
       tree.put("root.GfeVersion", GFE_VERSION);
       // Vibebeam extras so Vibelight can tell what this host supports and which OS it runs
       tree.put("root.VibebeamVersion", VERSION);
+#if defined(__linux__)
+      // A Linux host can only sync the clipboard when a usable backend was found.
+      tree.put("root.VibebeamFeatures", platf::clipboard_backend_name().empty() ? "files" : "clipboard,files");
+#else
       tree.put("root.VibebeamFeatures", "clipboard,files");
+#endif
 #if defined(_WIN32)
       tree.put("root.VibebeamHostOS", "windows");
 #elif defined(__APPLE__)
@@ -6651,6 +6659,12 @@ launch_session->exact_target_hold.reset();
     std::filesystem::path dir = config::sunshine.file_transfer_dir;
     std::filesystem::create_directories(dir, ec);
     if (ec) {
+      BOOST_LOG(warning) << "[file] Cannot create the receive folder ["sv << dir.string() << "]: "sv << ec.message() << "; trying the config folder instead"sv;
+      dir = platf::appdata() / "received-files";
+      ec.clear();
+      std::filesystem::create_directories(dir, ec);
+    }
+    if (ec) {
       BOOST_LOG(warning) << "[file] Cannot create the receive folder ["sv << dir.string() << "]: "sv << ec.message();
       response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
       response->close_connection_after_response = true;
@@ -6923,8 +6937,37 @@ launch_session->exact_target_hold.reset();
     conf_intern.servercert = cert;
   }
 
+#if defined(__linux__)
+  /**
+   * @brief Log what a Linux host needs for Vibelight features, so one log explains most problems.
+   */
+  void log_linux_host_checks() {
+    const auto backend = platf::clipboard_backend_name();
+    if (backend.empty()) {
+      BOOST_LOG(warning) << "[doctor] Clipboard sync is unavailable: no Klipper, wl-clipboard or xclip found"sv;
+    } else {
+      BOOST_LOG(info) << "[doctor] Clipboard sync backend: "sv << backend;
+    }
+
+    std::error_code ec;
+    std::filesystem::path dir = config::sunshine.file_transfer_dir;
+    std::filesystem::create_directories(dir, ec);
+    const bool dir_ok = !ec && access(dir.c_str(), W_OK) == 0;
+    BOOST_LOG(info) << "[doctor] File drop folder "sv << dir.string() << (dir_ok ? " is writable"sv : " is NOT writable (uploads will fall back to the config folder)"sv);
+
+    if (access("/dev/uinput", W_OK) != 0) {
+      BOOST_LOG(warning) << "[doctor] /dev/uinput is not writable: keyboard, mouse and gamepad input from clients will not work (check the udev rule and your group membership)"sv;
+    } else {
+      BOOST_LOG(info) << "[doctor] /dev/uinput is writable"sv;
+    }
+  }
+#endif
+
   void start() {
     platf::set_thread_name("nvhttp");
+#if defined(__linux__)
+    log_linux_host_checks();
+#endif
 #if defined(_WIN32) || defined(__linux__)
     // The listeners below can accept /launch as soon as they are started.
     // Install the concrete coordinator callbacks before exposing that route.

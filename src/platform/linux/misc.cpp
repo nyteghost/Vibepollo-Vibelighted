@@ -1729,18 +1729,6 @@ namespace platf {
     return std::make_unique<linux_high_precision_timer>();
   }
 
-  std::string
-    get_clipboard() {
-    // Placeholder
-    return "";
-  }
-
-  bool
-    set_clipboard(const std::string &content) {
-    // Placeholder
-    return false;
-  }
-
   std::string find_render_node_with_display() {
 #if defined(SUNSHINE_BUILD_DRM) && defined(__linux__)
     // Renderer discovery is metadata-only. Opening a primary node and forcing

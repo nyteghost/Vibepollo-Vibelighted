@@ -91,6 +91,8 @@ optdepends=(
   'linux-lts-headers: build the virtual-display module for the Arch LTS kernel'
   'linux-zen-headers: build the virtual-display module for the Arch zen kernel'
   'plasma-workspace: KDE Plasma Wayland desktop that the machine host streams'
+  'wl-clipboard: clipboard sync with Vibelight on a Wayland desktop without Klipper'
+  'xclip: clipboard sync with Vibelight on an X11 desktop without Klipper'
   'shim-signed: provide a signed shim boot chain for MOK trust on strict Secure Boot systems'
 )
 

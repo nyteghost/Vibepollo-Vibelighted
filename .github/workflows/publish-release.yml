@@ -1,6 +1,7 @@
 ---
 name: Publish release
-# Publishes the unsigned Windows portable ZIP from a successful CI build to this
+# Publishes the unsigned Windows portable ZIP (and the Arch Linux package when the run has one)
+# from a successful CI build to this
 # repository's Releases page, so Vibebeam's update check (and your own installs) have
 # something to find. It never signs anything and does not use any secrets besides the
 # built-in token.
@@ -85,10 +86,20 @@ jobs:
             exit 1
           fi
 
+      - name: Download the Arch Linux package (optional)
+        shell: bash
+        run: |
+          mkdir -p dl-arch
+          if gh run download "${{ steps.find.outputs.run_id }}" --repo "${GITHUB_REPOSITORY}" --name build-Archlinux --dir dl-arch; then
+            find dl-arch -type f -name '*.pkg.tar.zst' ! -name '*-debug-*' -print
+          else
+            echo "::warning::No Arch Linux package in this CI run; publishing the Windows ZIP only."
+          fi
+
       - name: Create or update the release
         shell: bash
         run: |
-          mapfile -t assets < <(find dl -type f -name '*.zip')
+          mapfile -t assets < <(find dl -type f -name '*.zip'; find dl-arch -type f -name '*.pkg.tar.zst' ! -name '*-debug-*' 2>/dev/null)
           flags=()
           if [[ "${PRERELEASE}" == "true" ]]; then flags+=(--prerelease); fi
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
