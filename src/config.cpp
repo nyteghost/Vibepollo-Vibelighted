@@ -2130,6 +2130,7 @@ namespace config {
     path_f(vars, "cert", nvhttp.cert);
     string_f(vars, "sunshine_name", nvhttp.sunshine_name);
     path_f(vars, "log_path", config::sunshine.log_file);
+    path_f(vars, "file_transfer_dir", config::sunshine.file_transfer_dir);
     path_f(vars, "file_state", nvhttp.file_state);
     path_f(vars, "vibeshine_file_state", nvhttp.vibeshine_file_state);
 
