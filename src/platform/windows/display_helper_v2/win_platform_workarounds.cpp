@@ -72,7 +72,7 @@ namespace display_helper::v2 {
       const auto delay = hdr_blank_delay_;
       hdr_blank_pending_ = false;
       lock.unlock();
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
       if (!borrow_mutation) { lock.lock(); break; }
       try {
         auto api = std::make_shared<display_device::WinApiLayer>();
@@ -85,7 +85,7 @@ namespace display_helper::v2 {
   }
 
   void WinPlatformWorkarounds::refresh_shell() {
-    auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+    auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
     if (!borrow_mutation) return;
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSHNOWAIT, nullptr, nullptr);
     // SPIF_SENDCHANGE broadcasts synchronously without the timeout used by
@@ -144,7 +144,7 @@ namespace display_helper::v2 {
 
       shell_broadcast_pending_ = false;
       lock.unlock();
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
       if (!borrow_mutation) { lock.lock(); break; }
       // SendMessageTimeout(HWND_BROADCAST, ...) waits up to its timeout for
       // every top-level window. Keep the legacy notifications, but a slow or

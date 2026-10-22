@@ -73,8 +73,8 @@ namespace {
     RefreshRateResult = 11,
     RecoveryStatus = 15,
     RecoveryStatusResult = 16,
-    BorrowAcquire = display_helper::borrow::acquire_message,
-    BorrowRelease = display_helper::borrow::release_message,
+    BorrowAcquire = ::display_helper::borrow::acquire_message,
+    BorrowRelease = ::display_helper::borrow::release_message,
     SnapshotResult = 12,
     Ping = 0xFE,
     Stop = 0xFF,
@@ -621,7 +621,7 @@ namespace {
 }  // namespace
 
 int run_v2_helper(int argc, char *argv[]) {
-  display_helper::borrow::helper_process().store(true, std::memory_order_release);
+  ::display_helper::borrow::helper_process().store(true, std::memory_order_release);
   bool restore_mode = false;
   std::optional<int> log_level_override;
   constexpr const char *kLogLevelPrefix = "--log-level=";
@@ -687,11 +687,11 @@ int run_v2_helper(int argc, char *argv[]) {
   restore_state.preserve_active_physical_primary.store(restore_mode);
   display_helper::v2::ApplyPolicy apply_policy(clock);
   display_helper::v2::WinVirtualDisplayDriver virtual_display;
-  display_helper::borrow::control_t borrow_control(
-    display_helper::borrow::process_gate(), display_helper::borrow::current_context(),
-    display_helper::borrow::controller_alive,
+  ::display_helper::borrow::control_t borrow_control(
+    ::display_helper::borrow::process_gate(), ::display_helper::borrow::current_context(),
+    ::display_helper::borrow::controller_alive,
     [&virtual_display] { return virtual_display.control_handle_for_borrow(); });
-  display_helper::borrow::mailbox_t borrow_mailbox(borrow_control);
+  ::display_helper::borrow::mailbox_t borrow_mailbox(borrow_control);
   display_helper::v2::WinPlatformWorkarounds workarounds;
   display_helper::v2::WinScheduledTaskManager task_manager;
   display_helper::v2::HeartbeatMonitor heartbeat(clock);
@@ -888,8 +888,8 @@ int run_v2_helper(int argc, char *argv[]) {
 
   auto process_queue = [&]() {
     const bool borrow_command = borrow_mailbox.service([&response_pipe](std::uint8_t type,
-        const display_helper::borrow::result_t &result, std::uint64_t epoch) {
-      response_pipe.send_for_epoch(epoch, static_cast<MsgType>(type), display_helper::borrow::encode_result(result));
+        const ::display_helper::borrow::result_t &result, std::uint64_t epoch) {
+      response_pipe.send_for_epoch(epoch, static_cast<MsgType>(type), ::display_helper::borrow::encode_result(result));
     });
     if (borrow_mailbox.inhibited()) {
       // The complete ordinary mailbox and FSM timer state stay parked. No

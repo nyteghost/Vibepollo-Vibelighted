@@ -309,7 +309,7 @@ namespace {
     }
 
     bool apply_layout_rotations(const layout_rotation_map_t &layout_rotations) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (layout_rotations.empty()) {
@@ -418,7 +418,7 @@ namespace {
 
     // Validate whether a snapshot's topology is currently applicable.
     bool is_topology_valid(const display_device::DisplaySettingsSnapshot &snap) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -435,7 +435,7 @@ namespace {
       const display_device::SingleDisplayConfiguration &cfg,
       const std::optional<display_device::ActiveTopology> &base_topology
     ) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -462,7 +462,7 @@ namespace {
 
     // Revert display configuration; returns whether reverted OK.
     bool revert() {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -476,7 +476,7 @@ namespace {
 
     // Reset persistence file; best-effort noop persistence returns true.
     bool reset_persistence() {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -486,7 +486,7 @@ namespace {
     }
 
     bool recover_display_stack() {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -501,7 +501,7 @@ namespace {
     }
 
     bool set_display_origin(const std::string &device_id, const display_device::Point &origin) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -524,7 +524,7 @@ namespace {
     }
 
     bool can_reposition_device(const std::string &device_id) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (device_id.empty() || !ensure_initialized()) {
@@ -549,7 +549,7 @@ namespace {
     }
 
     std::optional<display_device::Resolution> get_display_resolution(const std::string &device_id) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (device_id.empty() || !ensure_initialized()) {
@@ -577,7 +577,7 @@ namespace {
      * @return True if the mode was successfully applied.
      */
     bool set_device_refresh_rate(const std::string &device_id, unsigned int num, unsigned int den) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (device_id.empty() || !ensure_initialized()) {
@@ -603,7 +603,7 @@ namespace {
     }
 
     bool configuration_matches_current_state(const display_device::SingleDisplayConfiguration &cfg) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -662,7 +662,7 @@ namespace {
 
     // Capture a full snapshot of current settings.
     display_device::DisplaySettingsSnapshot snapshot() const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       display_device::DisplaySettingsSnapshot snap;
@@ -709,7 +709,7 @@ namespace {
 
     // Validate whether a proposed topology is acceptable by the OS using SDC_VALIDATE.
     bool validate_topology_with_os(const display_device::ActiveTopology &topo) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -751,7 +751,7 @@ namespace {
       const display_device::SingleDisplayConfiguration &cfg,
       const std::optional<display_device::ActiveTopology> &base_topology
     ) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -790,7 +790,7 @@ namespace {
       const display_device::SingleDisplayConfiguration &cfg,
       const std::optional<display_device::ActiveTopology> &base_topology
     ) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -822,7 +822,7 @@ namespace {
     }
 
     bool is_topology_the_same(const display_device::ActiveTopology &a, const display_device::ActiveTopology &b) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -838,7 +838,7 @@ namespace {
     // Finish the optional HDR blank before reporting capture readiness. Restore
     // every HDR-enabled output even when cancellation interrupts the SDR hold.
     bool blank_hdr_states(std::chrono::milliseconds delay, const std::function<bool()> &cancelled = [] { return false; }) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized() || cancelled()) return false;
@@ -1622,7 +1622,7 @@ namespace {
       const display_device::DisplaySettingsSnapshot &snap,
       const layout_rotation_map_t *layout_rotations = nullptr
     ) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -1849,7 +1849,7 @@ namespace {
     }
 
     std::unordered_map<std::string, std::wstring> active_display_names_by_device_id(const std::set<std::string> &device_ids = {}) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       std::unordered_map<std::string, std::wstring> out;
@@ -1973,7 +1973,7 @@ namespace {
      *        needs rotation, so batching overhead is unnecessary.
      */
     bool apply_display_rotation_degrees(const std::wstring &display_name, int degrees) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       auto prepared = prepare_display_rotation(display_name, degrees);
@@ -2012,7 +2012,7 @@ namespace {
 
   public:
     display_device::EnumeratedDeviceList enumerate_devices(display_device::DeviceEnumerationDetail detail) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -2028,7 +2028,7 @@ namespace {
     std::optional<display_device::EnumeratedDeviceList> enumerate_nonempty_devices_known(
       display_device::DeviceEnumerationDetail detail
     ) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) return std::nullopt;
@@ -2045,7 +2045,7 @@ namespace {
 
   private:
     std::optional<std::string> find_primary_in_set(const std::set<std::string> &ids) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -2090,7 +2090,7 @@ namespace {
     }
 
     std::optional<display_device::EnumeratedDevice::Info> get_device_info_minimal(const std::string &device_id) const {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return {};
 
       if (!ensure_initialized()) {
@@ -6326,7 +6326,7 @@ namespace {
 }  // namespace
 
 int run_legacy_helper(int argc, char *argv[]) {
-  display_helper::borrow::helper_process().store(true, std::memory_order_release);
+  ::display_helper::borrow::helper_process().store(true, std::memory_order_release);
   bool restore_mode = false;
   if (argc > 1) {
     for (int i = 1; i < argc; ++i) {

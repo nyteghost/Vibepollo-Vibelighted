@@ -336,10 +336,10 @@ namespace display_helper::v2 {
       }
 
       if (task) {
-        auto borrow_scope = display_helper::borrow::process_gate().wait_enter([&] { return st.stop_requested(); });
+        auto borrow_scope = ::display_helper::borrow::process_gate().wait_enter([&] { return st.stop_requested(); });
         if (!borrow_scope) break;
 #ifdef _WIN32
-        auto native_scope = display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return st.stop_requested(); });
+        auto native_scope = ::display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return st.stop_requested(); });
         if (!native_scope) {
           if (st.stop_requested()) break;
           std::lock_guard lock(mutex_);

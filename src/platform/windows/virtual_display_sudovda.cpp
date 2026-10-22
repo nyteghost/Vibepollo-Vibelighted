@@ -405,7 +405,7 @@ namespace VDISPLAY_SUDOVDA {
                 clear_pending();
                 return;
               }
-              auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
+              auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return stop_token.stop_requested(); });
               if (!borrowed_output_mutation) { clear_pending(); return; }
               try {
                 if (*fail_cb) {
@@ -753,7 +753,7 @@ namespace VDISPLAY_SUDOVDA {
     }
 
     bool apply_device_state_change(HDEVINFO info_set, SP_DEVINFO_DATA &data, DWORD state_change) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       SP_PROPCHANGE_PARAMS params {};
       params.ClassInstallHeader.cbSize = sizeof(SP_CLASSINSTALL_HEADER);
@@ -1447,7 +1447,7 @@ namespace VDISPLAY_SUDOVDA {
 
     // Clear the color profile association from registry for a display
     bool clear_color_profile_from_registry(const std::wstring &device_path, color_profile_scope_e scope) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       auto profile_path = get_color_profile_registry_path(device_path);
       if (!profile_path) {
@@ -1486,7 +1486,7 @@ namespace VDISPLAY_SUDOVDA {
       color_profile_scope_e scope,
       LSTATUS *out_status = nullptr
     ) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       auto profile_assoc_path = get_color_profile_registry_path(device_path);
       if (!profile_assoc_path) {
@@ -1558,7 +1558,7 @@ namespace VDISPLAY_SUDOVDA {
       const std::optional<std::wstring> &profile_name,
       const color_profile_scope_e scope
     ) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       bool api_success = false;
       if (profile_name && !profile_name->empty()) {
@@ -1583,7 +1583,7 @@ namespace VDISPLAY_SUDOVDA {
       const color_profile_scope_e scope,
       LSTATUS *out_status = nullptr
     ) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       return VDISPLAY::associate_hdr_profile(
         device_path,
@@ -1646,7 +1646,7 @@ namespace VDISPLAY_SUDOVDA {
                                  device_id,
                                  should_clear_mismatched,
                                  allow_active_virtual_display_fallback](std::stop_token work_stop_token) {
-        auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return work_stop_token.stop_requested(); });
+        auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true, [&] { return work_stop_token.stop_requested(); });
         if (!borrowed_output_mutation) return;
 
         if (work_stop_token.stop_requested()) {
@@ -1937,7 +1937,7 @@ namespace VDISPLAY_SUDOVDA {
     }
 
     bool apply_virtual_display_dpi_value(uint32_t value) {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
       if (!borrowed_output_mutation) return false;
       HKEY root = nullptr;
       if (RegOpenKeyExW(
@@ -3019,7 +3019,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   void applyHdrProfileToOutput(const char *s_client_name, const char *s_hdr_profile, const char *s_device_id) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     // Only apply HDR profiles when explicitly selected by the user.
     if (!s_hdr_profile || std::strlen(s_hdr_profile) == 0) {
@@ -3045,7 +3045,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   void restorePhysicalHdrProfiles() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     std::unordered_map<std::wstring, std::optional<std::wstring>> to_restore;
     {
@@ -3057,7 +3057,7 @@ namespace VDISPLAY_SUDOVDA {
     }
 
     std::thread([entries = std::move(to_restore)]() mutable {
-      auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrowed_output_mutation) return;
 
       auto restore_profiles = [&]() {
@@ -3191,7 +3191,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   void closeVDisplayDevice() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     g_watchdog_stop_requested.store(true, std::memory_order_release);
@@ -3210,7 +3210,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   void ensureVirtualDisplayRegistryDefaults() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     constexpr const wchar_t *REG_PATH = L"SOFTWARE\\SudoMaker\\SudoVDA";
     HKEY key = nullptr;
@@ -3332,7 +3332,7 @@ namespace VDISPLAY_SUDOVDA {
     std::stop_token stop_token,
     bool allow_reinstall,
     bool allow_driver_recovery) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return DRIVER_STATUS::FAILED;
     proc::setVDisplayDriverStatus(DRIVER_STATUS::UNKNOWN, VDISPLAY::DRIVER_SELECTION::UNKNOWN);
     const auto status = open_vdisplay_device_impl(stop_token, allow_reinstall, allow_driver_recovery);
@@ -3341,7 +3341,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   DRIVER_STATUS openVDisplayDevice() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return DRIVER_STATUS::FAILED;
     return open_vdisplay_device_with_status({});
   }
@@ -3351,7 +3351,7 @@ namespace VDISPLAY_SUDOVDA {
     std::stop_token stop_token,
     bool allow_reinstall
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (stop_token.stop_requested()) {
@@ -3473,13 +3473,13 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   bool ensure_driver_is_ready() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return ensure_driver_is_ready_impl(RestartCooldownBehavior::skip);
   }
 
   static bool start_ping_thread_impl(std::function<void()> failCb, std::stop_token stop_token) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (stop_token.stop_requested()) {
@@ -3621,7 +3621,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   void setWatchdogFeedingEnabled(bool enable) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     if (enable) {
       const auto deadline = std::chrono::steady_clock::now() + WATCHDOG_INIT_GRACE;
@@ -3636,7 +3636,7 @@ namespace VDISPLAY_SUDOVDA {
     const std::uint64_t dedicated_video_memory,
     const std::uint64_t shared_system_memory
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (SUDOVDA_DRIVER_HANDLE == INVALID_HANDLE_VALUE) {
@@ -3673,7 +3673,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   bool setRenderAdapterByName(const std::wstring &adapterName) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (SUDOVDA_DRIVER_HANDLE == INVALID_HANDLE_VALUE) {
@@ -3721,7 +3721,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   bool setRenderAdapterWithMostDedicatedMemory() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (SUDOVDA_DRIVER_HANDLE == INVALID_HANDLE_VALUE) {
@@ -4440,7 +4440,7 @@ namespace VDISPLAY_SUDOVDA {
     bool allow_reinstall,
     std::stop_token stop_token
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return std::nullopt;
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
     if (stop_token.stop_requested()) {
@@ -4641,7 +4641,7 @@ namespace VDISPLAY_SUDOVDA {
     bool replace_existing,
     bool preserve_peer_displays
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return {};
     if (!release_retained_ensure_display_for_stream(s_client_uid)) {
       return std::nullopt;
@@ -4667,7 +4667,7 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   bool removeAllVirtualDisplays() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     abort_all_recovery_monitors();
     std::lock_guard<std::recursive_mutex> operation_lock(g_virtual_display_operation_mutex);
@@ -4706,7 +4706,7 @@ namespace VDISPLAY_SUDOVDA {
     std::stop_token stop_token,
     bool allow_driver_recovery
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     const auto guid_uuid = guid_to_uuid(guid);
     // A recovery-owned rollback must complete removal even after its monitor
@@ -4820,13 +4820,13 @@ namespace VDISPLAY_SUDOVDA {
   }
 
   bool removeVirtualDisplay(const GUID &guid) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return remove_virtual_display_impl(guid, true, {});
   }
 
   static bool is_sudovda_driver_installed_passive() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     // Status/enumeration paths must not repair a missing device node. Users can
     // remove SudoVDA when they do not use virtual displays; reinstall only from
