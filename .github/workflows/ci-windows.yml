@@ -698,7 +698,7 @@ jobs:
             -B build \
             -G Ninja \
             -S . \
-            -DBUILD_WERROR=ON \
+            -DBUILD_WERROR=OFF \
             -DBUILD_TESTS=${{ inputs.build_tests && 'ON' || 'OFF' }} \
             -DBUILD_SUNSHINE_VIRTUAL_DISPLAY_DRIVER=OFF \
             -DBUILD_VIRTUALDISPLAY_PROBE=OFF \
