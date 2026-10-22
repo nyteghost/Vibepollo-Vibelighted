@@ -1,6 +1,6 @@
 # Vibebeam
 
-Vibebeam is the companion host for [Vibelight](https://github.com/nyteghost/moonlight-qt). It is an unofficial fork of [Vibepollo](https://github.com/Nonary/Vibepollo) by Nonary, which is based on [Apollo](https://github.com/ClassicOldSong/Apollo) by ClassicOldSong and [Sunshine](https://github.com/LizardByte/Sunshine). All of the host's streaming, capture and display work is theirs; this fork adds a few things for use with Vibelight (text clipboard sync and, over time, file transfer) and changes where updates come from. It is licensed under GPLv3 like the projects it is based on (see [LICENSE](LICENSE)). Please don't report problems with this fork to Nonary or the other upstream projects.
+Vibebeam is the companion host for [Vibelight](https://github.com/nyteghost/moonlight-qt). It is an unofficial fork of [Vibepollo](https://github.com/Nonary/Vibepollo) by Nonary, which is based on [Apollo](https://github.com/ClassicOldSong/Apollo) by ClassicOldSong and [Sunshine](https://github.com/LizardByte/Sunshine). All of the host's streaming, capture and display work is theirs; this fork adds a few things for use with Vibelight (see [What Vibebeam adds](#what-vibebeam-adds)) and changes where updates come from. It is licensed under GPLv3 like the projects it is based on (see [LICENSE](LICENSE)). Please don't report problems with this fork to Nonary or the other upstream projects.
 
 A scheduled workflow keeps a branch named `upstream-main` identical to Nonary's Vibepollo and opens a pull request here when there are new changes.
 
@@ -67,6 +67,17 @@ Due to the sheer pace and volume of changes I was producing, it became impractic
 
 At this point, Vibepollo differs substantially from upstream Sunshine. At that scale, asking upstream maintainers to accept large backports in one sweep is generally not sustainable, which is why Vibepollo continues as a standalone fork.
 
+## What Vibebeam adds
+
+- **Two-factor code to connect (optional).** In the web console, **Require 2FA to connect** shows a QR code to scan with any authenticator app, asks for one code to confirm, and gives you eight one-time backup codes. Vibelight then asks for the six-digit code each time someone starts or resumes a stream. Each code works once, five wrong tries pause that device for five minutes, and a dropped stream can reconnect for about two minutes without asking again. Apps that cannot type a code (such as stock Moonlight on iOS) need **Exempt from 2FA** turned on for that client. Locked out? Run `sudo rm /var/lib/vibepollo/two_factor.json` on the host to turn it off. Turn it off normally with a current or backup code.
+- **Clipboard sync** (text, both ways) with Vibelight, including on Linux, where the root session broker reads and writes the desktop clipboard for the service. Allow it per client under **Read clipboard** and **Set clipboard**.
+- **File drop** from Vibelight into the host's `received-files` folder (setting `file_transfer_dir`, up to 512 MB per file, never overwrites). Allow it per client under **Upload files**.
+- **Display health** (Linux): the Maintenance page shows whether the virtual-display module is built and loaded, lists the exact commands to fix it, and offers a diagnostics download.
+- **Hardened Linux service:** the host runs as its own user with a locked-down systemd unit, and the few things that need the desktop go through a small root broker with a fixed list of actions.
+- **Checksummed releases:** every release includes `SHA256SUMS`, and the Linux installer and update checks use this repository.
+
+Versions: the Arch package is named `vibebeam` (it provides and replaces `vibepollo` and `sunshine`).
+
 ---
 
 ## Linux (beta)
@@ -88,7 +99,7 @@ client also runs Linux. See [Linux PyroWave](docs/linux/pyrowave.md),
 [Steam Big Picture](docs/linux/steam-big-picture.md).
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Nonary/Vibepollo/master/scripts/linux_install.sh
+curl -fsSLO https://raw.githubusercontent.com/nyteghost/vibebeam/master/scripts/linux_install.sh
 sudo bash linux_install.sh
 ```
 
@@ -98,6 +109,8 @@ key enrollment if prompted. Updates come through a signed pacman repository with
 driver. Manual steps, verification, and troubleshooting are in the
 [Linux install guide](docs/linux/install.md). AppImage, Flatpak, Debian, Fedora, and Docker builds
 are not part of this beta.
+
+To install a release by hand, download the `vibebeam-*.pkg.tar.zst` and `SHA256SUMS` files from the [releases page](https://github.com/nyteghost/vibebeam/releases), run `sha256sum -c SHA256SUMS --ignore-missing`, then `sudo pacman -U vibebeam-*.pkg.tar.zst`.
 
 SteamOS development uses a separate [user bundle](packaging/linux/steamos/README.md)
 which leaves the read-only operating system untouched. Its experimental Gaming
