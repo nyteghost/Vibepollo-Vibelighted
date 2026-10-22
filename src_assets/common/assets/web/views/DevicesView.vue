@@ -272,7 +272,7 @@ const filteredDevices = computed(() => {
 
 const PERMISSION_VIEW = 0x02000000;
 const PERMISSION_LAUNCH = 0x04000000;
-const PERMISSION_ALL = 0x071f1f00;
+const PERMISSION_ALL = 0x073f1f00; // includes skip_2fa (0x200000)
 
 function permissionMask(device: PairedDevice): number {
   const parsed = Number(device.perm ?? 0);
