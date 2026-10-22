@@ -100,6 +100,14 @@ jobs:
         shell: bash
         run: |
           mapfile -t assets < <(find dl -type f -name '*.zip'; find dl-arch -type f -name '*.pkg.tar.zst' ! -name '*-debug-*' 2>/dev/null)
+          # Publish checksums so the Linux installer (and anyone downloading by hand) can verify
+          # that a package is exactly what this workflow uploaded.
+          mkdir -p sums
+          : > sums/SHA256SUMS
+          for asset in "${assets[@]}"; do
+            (cd "$(dirname "${asset}")" && sha256sum "$(basename "${asset}")") >> sums/SHA256SUMS
+          done
+          assets+=(sums/SHA256SUMS)
           flags=()
           if [[ "${PRERELEASE}" == "true" ]]; then flags+=(--prerelease); fi
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then

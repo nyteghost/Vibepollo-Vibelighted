@@ -6574,7 +6574,9 @@ launch_session->exact_target_hold.reset();
   }
 
   namespace {
-    constexpr std::size_t file_upload_max_bytes = 1024ull * 1024ull * 1024ull;  // 1 GiB
+    // The HTTP server buffers the whole body in memory, so keep this well below the service's
+    // memory ceiling.
+    constexpr std::size_t file_upload_max_bytes = 512ull * 1024ull * 1024ull;  // 512 MiB
 
     /**
      * Reduce a client-supplied file name to a safe single path component.
@@ -6641,15 +6643,16 @@ launch_session->exact_target_hold.reset();
     const std::string requested_name = get_arg(args, "name", "");
     const std::string name = sanitize_upload_name(requested_name);
     if (name.empty()) {
-      BOOST_LOG(info) << "[file] Upload by ["sv << verified_client->name << "] refused: no usable file name in ["sv << requested_name << "]"sv;
+      BOOST_LOG(info) << "[file] Upload by ["sv << verified_client->name << "] refused: no usable file name (the requested name was "sv << requested_name.size() << " characters)"sv;
       response->write(SimpleWeb::StatusCode::client_error_bad_request);
       response->close_connection_after_response = true;
       return;
     }
 
-    const std::string content = request->content.string();
-    if (content.size() > file_upload_max_bytes) {
-      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: "sv << content.size() << " bytes is over the "sv << file_upload_max_bytes << " byte limit"sv;
+    // Check the size before copying: request->content.string() would duplicate the whole body.
+    const std::size_t content_size = request->content.size();
+    if (content_size > file_upload_max_bytes) {
+      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: "sv << content_size << " bytes is over the "sv << file_upload_max_bytes << " byte limit"sv;
       response->write(SimpleWeb::StatusCode::client_error_payload_too_large);
       response->close_connection_after_response = true;
       return;
@@ -6686,10 +6689,10 @@ launch_session->exact_target_hold.reset();
 
     {
       std::ofstream out(target, std::ios::binary | std::ios::trunc);
-      out.write(content.data(), static_cast<std::streamsize>(content.size()));
+      out << request->content.rdbuf();
       out.flush();
       if (!out) {
-        BOOST_LOG(warning) << "[file] Writing ["sv << target.string() << "] failed after "sv << content.size() << " bytes (disk full or no permission?)"sv;
+        BOOST_LOG(warning) << "[file] Writing ["sv << target.string() << "] failed after "sv << content_size << " bytes (disk full or no permission?)"sv;
         out.close();
         std::filesystem::remove(target, ec);
         response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
@@ -6698,7 +6701,7 @@ launch_session->exact_target_hold.reset();
       }
     }
 
-    BOOST_LOG(info) << "[file] Received ["sv << target.filename().string() << "] ("sv << content.size() << " bytes) from ["sv << verified_client->name << "] into "sv << dir.string();
+    BOOST_LOG(info) << "[file] Received ["sv << target.filename().string() << "] ("sv << content_size << " bytes) from ["sv << verified_client->name << "] into "sv << dir.string();
     SimpleWeb::CaseInsensitiveMultimap headers;
     headers.emplace("Content-Type", "text/plain; charset=utf-8");
     response->write(SimpleWeb::StatusCode::success_ok, target.filename().string(), headers);

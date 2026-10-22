@@ -34,8 +34,8 @@ shopt -s extglob
 # Requirement and package-ownership checks parse command output.
 export LC_ALL=C
 
-readonly REPO_OWNER='Nonary'
-readonly REPO_NAME='Vibepollo'
+readonly REPO_OWNER='nyteghost'
+readonly REPO_NAME='vibebeam'
 readonly REPO_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}"
 readonly API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}"
 readonly PACMAN_REPO_NAME='vibepollo'
@@ -52,7 +52,10 @@ readonly SESSION_CONTROLLER='/usr/libexec/vibeshine/vibepollo-session-controller
 requested_version=''
 local_package=''
 allow_prerelease=1
-use_repo=1
+# The upstream signed pacman repository carries upstream's package, not Vibebeam's, and using
+# it would import its signing key into the system keyring. Releases from this fork are used
+# instead.
+use_repo=0
 skip_checks=0
 pacman_confirm=()
 replacement_confirm=()
@@ -761,7 +764,7 @@ download_release_package() {
   # Releases are listed newest first; pick the first one that carries an Arch package.
   read -r tag asset_name asset_url < <(jq -r "
     [${selector} | . as \$r | .assets[]
-      | select(.name | test(\"^vibepollo-.*\\\\.pkg\\\\.tar\\\\.zst\$\"))
+      | select(.name | test(\"^vibebeam-.*\\\\.pkg\\\\.tar\\\\.zst\$\"))
       | select(.name | test(\"-debug-\") | not)
       | [\$r.tag_name, .name, .browser_download_url] | @tsv] | first // empty" <<<"$releases")
   [[ -n "${asset_url:-}" ]] ||
