@@ -390,14 +390,14 @@ check_distribution() {
   fi
   case "$id" in
     cachyos)
-      ok "CachyOS detected. This is the distribution Vibepollo is tuned and tested on."
+      ok "CachyOS detected. This is the distribution Vibebeam is tuned and tested on."
       ;;
     arch)
-      ok "Arch Linux detected. Vibepollo is optimized for CachyOS; Arch is supported on a best-effort basis."
+      ok "Arch Linux detected. Vibebeam is optimized for CachyOS; Arch is supported on a best-effort basis."
       ;;
     *)
       if [[ " $id_like " == *' arch '* ]]; then
-        warn "${name:-$id} is an Arch derivative. Vibepollo is tested on CachyOS; expect rough edges here."
+        warn "${name:-$id} is an Arch derivative. Vibebeam is tested on CachyOS; expect rough edges here."
       else
         warn "${name:-unknown distribution} is not Arch-based. Continuing because pacman exists, but this is untested."
       fi
@@ -490,12 +490,12 @@ check_desktop() {
   if pacman -Qq plasma-workspace >/dev/null 2>&1 || pacman -Qq plasma-desktop >/dev/null 2>&1; then
     ok "KDE Plasma is installed."
   else
-    fail "KDE Plasma is not installed. Vibepollo streams only a KDE Plasma 6 Wayland desktop (install plasma-meta or plasma-desktop)."
+    fail "KDE Plasma is not installed. Vibebeam streams only a KDE Plasma 6 Wayland desktop (install plasma-meta or plasma-desktop)."
   fi
   if pacman -Qq sddm >/dev/null 2>&1 || pacman -Qq plasma-login-manager >/dev/null 2>&1; then
     ok "A supported login manager (SDDM or Plasma Login Manager) is installed."
   else
-    warn "Neither sddm nor plasma-login-manager is installed. Vibepollo only attaches to Plasma sessions started by one of them."
+    warn "Neither sddm nor plasma-login-manager is installed. Vibebeam only attaches to Plasma sessions started by one of them."
   fi
   if [[ -x /usr/bin/kwin_wayland ]]; then
     ok "KWin Wayland is available."
@@ -543,7 +543,7 @@ check_gpu() {
     fi
   fi
   if ! ((nvidia || amd || intel)); then
-    warn "Could not identify a GPU vendor. Vibepollo needs a GPU with a hardware H.264 encoder."
+    warn "Could not identify a GPU vendor. Vibebeam needs a GPU with a hardware H.264 encoder."
   fi
   if ((nvidia == 0)); then
     warn "Pre-login (greeter) streaming is only supported on NVIDIA GPUs; this machine streams after login."
@@ -561,7 +561,7 @@ check_secure_boot() {
 }
 
 run_checks() {
-  log 'Checking this machine against the Vibepollo Linux requirements'
+  log 'Checking this machine against the Vibebeam Linux requirements'
   check_distribution
   check_kernel
   check_desktop
@@ -697,9 +697,10 @@ Operation = Upgrade
 Operation = Remove
 Type = Package
 Target = vibepollo
+Target = vibebeam
 
 [Action]
-Description = Safely stopping Vibepollo before package replacement
+Description = Safely stopping Vibebeam before package replacement
 When = PreTransaction
 Exec = $preflight
 AbortOnFail
@@ -731,18 +732,18 @@ install_from_repo() {
     \( -name 'vibebeam-*.pkg.tar.*' -o -name 'vibepollo-*.pkg.tar.*' \) ! -name '*.sig' -print0)
   [[ ${#candidates[@]} == 1 ]] || die 'expected exactly one verified Vibepollo package in the private cache'
   [[ $(pacman -Qp -- "${candidates[0]}") == @(vibebeam|vibepollo)' '* ]] ||
-    die 'cached package identity is not Vibepollo'
+    die 'cached package identity is not Vibebeam'
   stage_upgrade_guard "${candidates[0]}"
   prepare_package_hook_dirs
   prepare_driver_replacement
-  log 'Installing Vibepollo and its dependencies; no full system upgrade is requested'
+  log 'Installing Vibebeam and its dependencies; no full system upgrade is requested'
   run_package_transaction pacman -S "${replacement_confirm[@]}" "${driver_overwrite[@]}" \
     --cachedir "$workdir/cache" "${package_hook_args[@]}" "${repo_target[@]}"
 }
 
 download_release_package() {
   local releases tag asset_url asset_name selector
-  log 'Looking up the newest Vibepollo release on GitHub'
+  log 'Looking up the newest Vibebeam release on GitHub'
   command -v curl >/dev/null 2>&1 || die 'curl is required to download the release'
   if ! command -v jq >/dev/null 2>&1; then
     pacman -S --needed "${pacman_confirm[@]}" jq
@@ -934,19 +935,19 @@ remove_vibepollo() {
   workdir=$(mktemp -d /tmp/vibepollo-removal.XXXXXXXX)
   stage_upgrade_guard "$local_package"
   prepare_package_hook_dirs
-  log 'Removing Vibepollo with the incoming shutdown guard; the policy package will not be installed'
+  log 'Removing Vibebeam with the incoming shutdown guard; the policy package will not be installed'
   run_package_transaction pacman -R "${pacman_confirm[@]}" "${package_hook_args[@]}" -- vibepollo || return $?
-  ok 'Vibepollo was removed; existing machine profile data is preserved.'
+  ok 'Vibebeam was removed; existing machine profile data is preserved.'
 }
 
 open_firewall() {
   if systemctl is-active --quiet firewalld 2>/dev/null; then
-    log 'Opening the Vibepollo ports in firewalld'
+    log 'Opening the Vibebeam ports in firewalld'
     firewall-cmd --permanent --add-service=vibepollo >/dev/null && firewall-cmd --reload >/dev/null &&
       ok 'firewalld: service "vibepollo" allowed.' ||
       warn 'firewalld: could not add the vibepollo service; run: sudo firewall-cmd --permanent --add-service=vibepollo && sudo firewall-cmd --reload'
   elif command -v ufw >/dev/null 2>&1 && LC_ALL=C ufw status 2>/dev/null | grep -q '^Status: active'; then
-    log 'Opening the Vibepollo ports in ufw'
+    log 'Opening the Vibebeam ports in ufw'
     ufw allow Vibepollo >/dev/null && ok 'ufw: application profile "Vibepollo" allowed.' ||
       warn 'ufw: could not allow the Vibepollo profile; run: sudo ufw allow Vibepollo'
   else
@@ -1021,7 +1022,7 @@ check_session_restart() {
   # predates those hooks even when the newly installed DRM module loads.
   if ! pacman -Q vibepollo >/dev/null 2>&1; then
     reboot_required=1
-    warn 'First installation requires a reboot so the login screen and desktop load the Vibepollo display and session integration.'
+    warn 'First installation requires a reboot so the login screen and desktop load the Vibebeam display and session integration.'
   fi
 }
 
@@ -1088,7 +1089,7 @@ check_services() {
 
 print_summary() {
   printf '\n'
-  log 'Vibepollo is installed. Next steps:'
+  log 'Vibebeam is installed. Next steps:'
   local step=1
   if ((reboot_required)); then
     printf '    %d. Reboot now. The display/session integration, virtual-display driver, Secure Boot key, or service state requires it.\n' "$step"

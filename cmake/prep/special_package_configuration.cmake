@@ -81,6 +81,19 @@ elseif(UNIX)
         configure_file("${LIBVIRTUALDISPLAY_LINUX_ROOT}/packaging/vibeshine-vkms-control@.service.in" vibeshine-vkms-control@.service @ONLY)
         configure_file("${LIBVIRTUALDISPLAY_LINUX_ROOT}/packaging/vibeshine-drm-setup.service.in" vibeshine-drm-setup.service @ONLY)
         configure_file("${LIBVIRTUALDISPLAY_LINUX_ROOT}/packaging/vibeshine-drm-install.in" vibeshine-drm-install @ONLY)
+        # Vibebeam: during a package upgrade the DKMS hook removes the module files before this
+        # script unloads the module, so "modprobe -r" reports "Module not found" even though
+        # the old module is still loaded. Fall back to rmmod, which works from the loaded
+        # module alone. Fail the build if the upstream text changes so this is revisited.
+        file(READ "${CMAKE_CURRENT_BINARY_DIR}/vibeshine-drm-install" _vibebeam_drm_install)
+        set(_vibebeam_unload_old [=[  if ! modprobe -r "$MODULE_NAME"; then]=])
+        set(_vibebeam_unload_new [=[  if ! modprobe -r "$MODULE_NAME" 2>/dev/null && ! rmmod "$MODULE_NAME"; then]=])
+        string(FIND "${_vibebeam_drm_install}" "${_vibebeam_unload_old}" _vibebeam_unload_at)
+        if(_vibebeam_unload_at EQUAL -1)
+            message(FATAL_ERROR "vibeshine-drm-install no longer contains the expected modprobe -r line; update the Vibebeam unload fix")
+        endif()
+        string(REPLACE "${_vibebeam_unload_old}" "${_vibebeam_unload_new}" _vibebeam_drm_install "${_vibebeam_drm_install}")
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/vibeshine-drm-install" "${_vibebeam_drm_install}")
         configure_file("${LIBVIRTUALDISPLAY_LINUX_ROOT}/vibeshine-drm/dkms.conf.in" vibeshine-drm-dkms.conf @ONLY)
         file(READ "${CMAKE_SOURCE_DIR}/src_assets/linux/misc/postinst" VIBESHINE_BASE_POSTINST)
         configure_file(packaging/linux/vibeshine-preinst.in preinst @ONLY)

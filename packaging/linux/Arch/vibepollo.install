@@ -26,11 +26,11 @@ do_secure_executables() {
   setcap -r "$executable" 2>/dev/null || true
   setcap -r "$client" 2>/dev/null || true
   [[ -z $(getcap "$executable" 2>/dev/null) ]] || {
-    echo 'error: unsafe file capabilities remain on the native Vibepollo executable.' >&2
+    echo 'error: unsafe file capabilities remain on the native Vibebeam executable.' >&2
     return 1
   }
   [[ -z $(getcap "$client" 2>/dev/null) ]] || {
-    echo 'error: obsolete capabilities remain on the Vibepollo session client.' >&2
+    echo 'error: obsolete capabilities remain on the Vibebeam session client.' >&2
     return 1
   }
   chown root:root "$broker"
@@ -58,7 +58,7 @@ do_secure_executables() {
      'root:vibepollo:750' ]] || return 1
   host_capabilities=$(getcap "$host" 2>/dev/null)
   [[ "$host_capabilities" == "$host cap_sys_admin,cap_sys_nice=p" ]] || {
-    echo 'error: the private Vibepollo host has unexpected file capabilities.' >&2
+    echo 'error: the private Vibebeam host has unexpected file capabilities.' >&2
     return 1
   }
   [[ $(getcap "$broker" 2>/dev/null) == \
@@ -68,7 +68,7 @@ do_secure_executables() {
   }
   [[ -z $(getcap "$executable" 2>/dev/null) &&
      -z $(getcap "$client" 2>/dev/null) ]] || {
-    echo 'error: a public Vibepollo entrypoint gained file capabilities.' >&2
+    echo 'error: a public Vibebeam entrypoint gained file capabilities.' >&2
     return 1
   }
 }
@@ -578,7 +578,7 @@ vibepollo_stop_host_for_package() (
   fi
   command -v vibepollo_package_log_force_outcome >/dev/null 2>&1 && \
     vibepollo_package_log_force_outcome pending || return 1
-  echo 'warning: forced shutdown authorized; terminating the fenced Vibepollo service cgroup after its graceful deadline.' >&2
+  echo 'warning: forced shutdown authorized; terminating the fenced Vibebeam service cgroup after its graceful deadline.' >&2
   timeout --signal=KILL 5 systemctl kill --signal=KILL \
     vibepollo.service 2>/dev/null || {
       vibepollo_package_log_force_outcome kill-failed || :
@@ -595,7 +595,7 @@ vibepollo_stop_host_for_package() (
   while :; do
     if vibepollo_unit_is_quiescent vibepollo.service; then
       vibepollo_package_log_force_outcome complete || return 1
-      echo 'Vibepollo forced shutdown completed; the old service cgroup is empty.' >&2
+      echo 'Vibebeam forced shutdown completed; the old service cgroup is empty.' >&2
       return 0
     fi
     vibepollo_read_host_stop_identity || return 1
@@ -609,7 +609,7 @@ vibepollo_stop_host_for_package() (
     sleep 0.1
   done
   vibepollo_package_log_force_outcome still-populated || :
-  echo 'error: forced shutdown did not empty the old Vibepollo service cgroup; replacement remains blocked.' >&2
+  echo 'error: forced shutdown did not empty the old Vibebeam service cgroup; replacement remains blocked.' >&2
   return 1
 )
 
@@ -1322,7 +1322,7 @@ vibepollo_package_preserve_unowned_host_mask() {
   if [ "$vibepollo_package_mask_verified" -ne 1 ] ||
      ! vibepollo_unit_is_quiescent vibepollo.service ||
      ! vibepollo_package_no_jobs; then
-    echo 'error: an unowned Vibepollo host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
+    echo 'error: an unowned Vibebeam host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
     return 1
   fi
   # Preserve the actual mask and any unowned fence byte-for-byte. The mask
@@ -1977,7 +1977,7 @@ vq() {
 vibepollo_abort_quiesce() {
   vibepollo_package_abort_done=1
   trap - HUP INT TERM
-  echo "error: could not safely quiesce the existing Vibepollo host (failed step: ${vibepollo_quiesce_step:-unknown}); package replacement is blocked." >&2
+  echo "error: could not safely quiesce the existing Vibebeam host (failed step: ${vibepollo_quiesce_step:-unknown}); package replacement is blocked." >&2
 
   # Before broker admission closes, preserve the existing GPU-owning host.
   # Keep any runtime fence/masks for a deliberate retry or reboot instead of
@@ -2165,7 +2165,7 @@ do_quiesce_machine_host() {
      ! -e "$vibepollo_legacy_restore_directory" && ! -L "$vibepollo_legacy_restore_directory" &&
      ! -e "$vibepollo_legacy_transition_lock" && ! -L "$vibepollo_legacy_transition_lock" &&
      ! -e "$vibepollo_legacy_prelogin_marker" && ! -L "$vibepollo_legacy_prelogin_marker" ]] || {
-    echo 'error: installed Vibepollo runtime state remains; replacement is blocked and admission stays disabled.' >&2
+    echo 'error: installed Vibebeam runtime state remains; replacement is blocked and admission stays disabled.' >&2
     return 1
   }
   vibepollo_quiesce_step='verify trusted session record is absent'
@@ -2189,13 +2189,13 @@ do_install_vibeshine_drm() {
   fi
   case $install_rc in
     4)
-      echo "==> ACTION REQUIRED: the Vibepollo DRM module was updated, but the running kernel still holds the old one. Reboot before streaming." >&2
+      echo "==> ACTION REQUIRED: the Vibebeam DRM module was updated, but the running kernel still holds the old one. Reboot before streaming." >&2
       ;;
     5)
-      echo "==> ACTION REQUIRED: Vibepollo DRM signing key enrollment is queued. Reboot and approve the pending MOK confirmation once." >&2
+      echo "==> ACTION REQUIRED: Vibebeam DRM signing key enrollment is queued. Reboot and approve the pending MOK confirmation once." >&2
       ;;
     *)
-      echo "==> ACTION REQUIRED: the Vibepollo virtual-display module was not installed, so streaming is unavailable." >&2
+      echo "==> ACTION REQUIRED: the Vibebeam virtual-display module was not installed, so streaming is unavailable." >&2
       echo "    Install the headers for the running kernel (see the message above), then run:" >&2
       echo "      sudo /usr/libexec/vibeshine/vibeshine-drm-install install" >&2
       ;;
@@ -2211,7 +2211,7 @@ do_install_vibeshine_ds5() {
 
 do_print_next_steps() {
   cat <<'NEXT_STEPS'
-==> Vibepollo next steps
+==> Vibebeam next steps
     1. On first installation, reboot so the login screen and desktop load the new display/session integration.
     2. Open https://localhost:47990 on this machine, create the Web UI login, then pair Moonlight.
        Pairing works at the login screen; enter the PIN in the Web UI from another device.
@@ -2321,7 +2321,7 @@ do_install_prelogin() {
         vibepollo_package_recover_failed_transaction ||
           echo 'error: failed-start recovery could not prove a safe release; owned fences were retained for retry.' >&2
       fi
-      echo 'error: could not enable the Vibepollo session controller safely.' >&2
+      echo 'error: could not enable the Vibebeam session controller safely.' >&2
       return 1
     fi
     if ! vibepollo_unmask_host_for_controller ||
@@ -2330,7 +2330,7 @@ do_install_prelogin() {
         vibepollo_package_recover_failed_transaction ||
           echo 'error: failed-start recovery could not prove a safe release; owned fences were retained for retry.' >&2
       fi
-      echo 'error: could not start the Vibepollo session controller safely.' >&2
+      echo 'error: could not start the Vibebeam session controller safely.' >&2
       return 1
     fi
   else
@@ -2341,7 +2341,7 @@ do_install_prelogin() {
       echo 'error: machine configuration failed and safe release could not be proved; retry package configuration to finish owned shutdown recovery.' >&2
       return 1
     fi
-    echo '==> ACTION REQUIRED: Vibepollo could not prepare the machine profile; review the preceding setup or migration error.' >&2
+    echo '==> ACTION REQUIRED: Vibebeam could not prepare the machine profile; review the preceding setup or migration error.' >&2
     echo "    Run:  sudo vibepollo configure USER" >&2
     echo '    then: sudo systemctl enable --now vibepollo-session-controller.service' >&2
     return 1
@@ -2388,7 +2388,7 @@ pre_remove() {
   /usr/libexec/vibeshine/vibeshine-ds5-install remove || \
     echo "warning: could not remove the DualSense USB module cleanly."
   /usr/libexec/vibeshine/vibeshine-drm-install remove || \
-    echo "warning: could not remove the Vibepollo HDR DRM module cleanly."
+    echo "warning: could not remove the Vibebeam HDR DRM module cleanly."
 }
 
 post_remove() {

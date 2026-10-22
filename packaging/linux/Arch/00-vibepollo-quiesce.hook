@@ -7,7 +7,7 @@ Target = vibepollo
 Target = vibebeam
 
 [Action]
-Description = Safely stopping Vibepollo before package replacement
+Description = Safely stopping Vibebeam before package replacement
 When = PreTransaction
 Exec = /usr/libexec/vibeshine/vibepollo-package-preflight
 AbortOnFail

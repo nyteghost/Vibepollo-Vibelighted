@@ -1028,6 +1028,11 @@ namespace platf {
    * @return The backend name, or an empty string when no clipboard tool is usable.
    */
   std::string clipboard_backend_name();
+
+  /**
+   * @brief Largest clipboard text, in bytes, the selected Linux backend accepts.
+   */
+  std::size_t clipboard_write_limit();
 #endif
 
   /**

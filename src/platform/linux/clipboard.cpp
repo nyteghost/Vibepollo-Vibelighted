@@ -471,6 +471,12 @@ namespace platf {
     return backend().name;
   }
 
+  std::size_t clipboard_write_limit() {
+    // The session broker carries text hex-encoded inside one 128 KiB protocol message, so it
+    // takes less than the direct backends do.
+    return backend().backend == backend_e::broker ? broker_max_bytes : max_clipboard_bytes;
+  }
+
   std::string get_clipboard() {
     const auto &selected = backend();
     std::string out;

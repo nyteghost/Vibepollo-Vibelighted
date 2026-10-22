@@ -7,7 +7,7 @@ if command -v systemd-sysusers >/dev/null 2>&1; then
   systemd-sysusers "@VIBESHINE_SYSUSERS_INSTALL_DIR@/vibeshine-vkms.conf" || \
     echo "warning: could not create the dedicated vibeshine-vkms control group."
   systemd-sysusers "@VIBESHINE_SYSUSERS_INSTALL_DIR@/vibepollo.conf" || \
-    echo "warning: could not create the dedicated Vibepollo service account."
+    echo "warning: could not create the dedicated Vibebeam service account."
 fi
 
 vibepollo_controller="@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibepollo-session-controller"
@@ -223,7 +223,7 @@ vibepollo_package_preserve_unowned_host_mask() {
   if [ "$vibepollo_package_mask_verified" -ne 1 ] ||
      ! vibepollo_unit_is_quiescent vibepollo.service ||
      ! vibepollo_package_no_jobs; then
-    echo 'error: an unowned Vibepollo host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
+    echo 'error: an unowned Vibebeam host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
     return 1
   fi
   # Preserve the actual mask and any unowned fence byte-for-byte. The mask
@@ -1309,7 +1309,7 @@ vibepollo_stop_host_for_package() (
   fi
   command -v vibepollo_package_log_force_outcome >/dev/null 2>&1 && \
     vibepollo_package_log_force_outcome pending || return 1
-  echo 'warning: forced shutdown authorized; terminating the fenced Vibepollo service cgroup after its graceful deadline.' >&2
+  echo 'warning: forced shutdown authorized; terminating the fenced Vibebeam service cgroup after its graceful deadline.' >&2
   timeout --signal=KILL 5 systemctl kill --signal=KILL \
     vibepollo.service 2>/dev/null || {
       vibepollo_package_log_force_outcome kill-failed || :
@@ -1326,7 +1326,7 @@ vibepollo_stop_host_for_package() (
   while :; do
     if vibepollo_unit_is_quiescent vibepollo.service; then
       vibepollo_package_log_force_outcome complete || return 1
-      echo 'Vibepollo forced shutdown completed; the old service cgroup is empty.' >&2
+      echo 'Vibebeam forced shutdown completed; the old service cgroup is empty.' >&2
       return 0
     fi
     vibepollo_read_host_stop_identity || return 1
@@ -1340,7 +1340,7 @@ vibepollo_stop_host_for_package() (
     sleep 0.1
   done
   vibepollo_package_log_force_outcome still-populated || :
-  echo 'error: forced shutdown did not empty the old Vibepollo service cgroup; replacement remains blocked.' >&2
+  echo 'error: forced shutdown did not empty the old Vibebeam service cgroup; replacement remains blocked.' >&2
   return 1
 )
 
@@ -1841,7 +1841,7 @@ vq() {
 vibepollo_abort_quiesce() {
   vibepollo_package_abort_done=1
   trap - HUP INT TERM
-  echo "error: could not safely quiesce the existing Vibepollo host (failed step: ${vibepollo_quiesce_step:-unknown}); package replacement is blocked." >&2
+  echo "error: could not safely quiesce the existing Vibebeam host (failed step: ${vibepollo_quiesce_step:-unknown}); package replacement is blocked." >&2
 
   # Before broker admission closes, preserve the existing GPU-owning host.
   # Keep any runtime fence/masks for a deliberate retry or reboot instead of
@@ -2336,7 +2336,7 @@ vibepollo_quiesce_machine_host() {
 }
 
 if ! vibepollo_quiesce_or_abort; then
-  echo "error: could not quiesce the existing machine host; leaving Vibepollo disabled." >&2
+  echo "error: could not quiesce the existing machine host; leaving Vibebeam disabled." >&2
   exit 1
 fi
 
@@ -2399,7 +2399,7 @@ if [ "$(stat -c '%U:%G:%a:%F' -- "$vibepollo_private_host")" != \
      'root:vibepollo:750:regular file' ] ||
    [ "$(getcap "$vibepollo_private_host" 2>/dev/null)" != \
      "$vibepollo_private_host cap_sys_admin,cap_sys_nice=p" ]; then
-  echo "error: private Vibepollo host permissions or capabilities are unsafe." >&2
+  echo "error: private Vibebeam host permissions or capabilities are unsafe." >&2
   exit 1
 fi
 if [ "$(getcap "$vibepollo_session_broker" 2>/dev/null)" != \
@@ -2418,7 +2418,7 @@ vibepollo_machine_configured=0
 vibepollo_machine_host="@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibepollo-machine-host"
 if [ -e "$vibepollo_machine_host" ] || [ -L "$vibepollo_machine_host" ]; then
   vibepollo_privileged_helper_is_safe "$vibepollo_machine_host" || {
-    echo "error: installed Vibepollo machine helper is unsafe." >&2
+    echo "error: installed Vibebeam machine helper is unsafe." >&2
     exit 1
   }
   "$vibepollo_machine_host" remove-pam || \
@@ -2430,7 +2430,7 @@ if vibepollo_privileged_helper_is_safe "$vibepollo_machine_host" && \
    "$vibepollo_machine_host" configure-auto; then
   vibepollo_machine_configured=1
 else
-  echo "==> ACTION REQUIRED: Vibepollo could not prepare the machine profile; review the preceding setup or migration error." >&2
+  echo "==> ACTION REQUIRED: Vibebeam could not prepare the machine profile; review the preceding setup or migration error." >&2
   echo "    Run:  sudo vibepollo configure USER" >&2
   echo "    then: sudo systemctl enable --now vibepollo-session-controller.service" >&2
 fi
@@ -2472,15 +2472,15 @@ export VIBESHINE_EXECUTABLE_CAPABILITY_MODE
 # Build/register the managed virtual-display module. Package installation may
 # continue on failure, but managed displays remain unavailable until it loads.
 if [ -x "@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibeshine-drm-install" ]; then
-  echo "Installing the Vibepollo HDR DRM module."
+  echo "Installing the Vibebeam HDR DRM module."
   if "@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibeshine-drm-install" install; then
     :
   else
     vibeshine_drm_rc=$?
     if [ "$vibeshine_drm_rc" -eq 4 ]; then
-      echo "warning: Vibepollo DRM was updated, but the loaded module is stale; reboot before using managed virtual displays."
+      echo "warning: Vibebeam DRM was updated, but the loaded module is stale; reboot before using managed virtual displays."
     else
-      echo "warning: Vibepollo DRM installation failed; managed virtual displays are unavailable."
+      echo "warning: Vibebeam DRM installation failed; managed virtual displays are unavailable."
     fi
   fi
 fi
@@ -2499,7 +2499,7 @@ if [ "$vibepollo_machine_configured" -eq 1 ] &&
       vibepollo_package_recover_failed_transaction ||
         echo 'error: failed-start recovery could not prove a safe release; owned fences were retained for retry.' >&2
     fi
-    echo "error: could not enable the Vibepollo controller safely; transaction recovery was attempted; inspect the preceding shutdown result." >&2
+    echo "error: could not enable the Vibebeam controller safely; transaction recovery was attempted; inspect the preceding shutdown result." >&2
     exit 1
   fi
   # Keep the host masked until the new controller is the next component that
@@ -2510,7 +2510,7 @@ if [ "$vibepollo_machine_configured" -eq 1 ] &&
       vibepollo_package_recover_failed_transaction ||
         echo 'error: failed-start recovery could not prove a safe release; owned fences were retained for retry.' >&2
     fi
-    echo "error: could not start the Vibepollo controller safely; transaction recovery was attempted; inspect the preceding shutdown result." >&2
+    echo "error: could not start the Vibebeam controller safely; transaction recovery was attempted; inspect the preceding shutdown result." >&2
     exit 1
   fi
 elif [ "$vibepollo_machine_configured" -ne 1 ]; then
