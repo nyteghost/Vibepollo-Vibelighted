@@ -260,7 +260,7 @@ test('Linux overview never probes or displays the Windows ViGEm diagnostic', asy
   expect(calls.vigem).toBe(0);
 });
 
-test('Windows overview hides the ViGEm warning when the Vibepollo driver covers it', async ({
+test('Windows overview hides the ViGEm warning when the Vibebeam driver covers it', async ({
   page,
 }) => {
   const calls = await installFixture(page, {

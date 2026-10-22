@@ -527,9 +527,10 @@ onBeforeUnmount(() => {
           >{{ t('ui.overview.installedVersion') }}
           <strong>{{ system.metadata?.version || t('_common.unknown') }}</strong></span
         >
+        <span>Based on Vibepollo by Nonary, built on Apollo and Sunshine</span>
         <nav :aria-label="t('ui.overview.support')">
           <a
-            href="https://github.com/Nonary/Vibepollo/issues/new/choose"
+            href="https://github.com/nyteghost/vibebeam/issues/new/choose"
             target="_blank"
             rel="noopener noreferrer"
             >{{ t('ui.overview.actions.reportBug') }}<UiIcon name="external-link" :size="14"
