@@ -6464,7 +6464,7 @@ launch_session->exact_target_hold.reset();
     auto args = request->parse_query_string();
     auto clipboard_type = get_arg(args, "type");
     if (clipboard_type != "text"sv) {
-      BOOST_LOG(debug) << "Clipboard type [" << clipboard_type << "] is not supported!";
+      BOOST_LOG(info) << "[clipboard] "sv << (verified_client ? verified_client->name : "unknown"s) << ": unsupported clipboard type ["sv << clipboard_type << "], only text is supported"sv;
 
       response->write(SimpleWeb::StatusCode::client_error_bad_request);
       response->close_connection_after_response = true;
@@ -6480,7 +6480,7 @@ launch_session->exact_target_hold.reset();
     }
 
     if (!found) {
-      BOOST_LOG(debug) << "Client [" << verified_client->name << "] trying to get clipboard is not connected to a stream";
+      BOOST_LOG(info) << "[clipboard] Read refused: client ["sv << verified_client->name << "] is not in an active stream (active sessions: "sv << connected_uuids.size() << ")"sv;
 
       response->write(SimpleWeb::StatusCode::client_error_forbidden);
       response->close_connection_after_response = true;
@@ -6488,6 +6488,7 @@ launch_session->exact_target_hold.reset();
     }
 
     std::string content = platf::get_clipboard();
+    BOOST_LOG(info) << "[clipboard] Read by ["sv << verified_client->name << "]: "sv << content.size() << " bytes"sv;
     response->write(content);
     return;
   }
@@ -6510,7 +6511,7 @@ launch_session->exact_target_hold.reset();
     auto args = request->parse_query_string();
     auto clipboard_type = get_arg(args, "type");
     if (clipboard_type != "text"sv) {
-      BOOST_LOG(debug) << "Clipboard type [" << clipboard_type << "] is not supported!";
+      BOOST_LOG(info) << "[clipboard] "sv << (verified_client ? verified_client->name : "unknown"s) << ": unsupported clipboard type ["sv << clipboard_type << "], only text is supported"sv;
 
       response->write(SimpleWeb::StatusCode::client_error_bad_request);
       response->close_connection_after_response = true;
@@ -6526,7 +6527,7 @@ launch_session->exact_target_hold.reset();
     }
 
     if (!found) {
-      BOOST_LOG(debug) << "Client [" << verified_client->name << "] trying to set clipboard is not connected to a stream";
+      BOOST_LOG(info) << "[clipboard] Write refused: client ["sv << verified_client->name << "] is not in an active stream (active sessions: "sv << connected_uuids.size() << ")"sv;
 
       response->write(SimpleWeb::StatusCode::client_error_forbidden);
       response->close_connection_after_response = true;
@@ -6538,12 +6539,14 @@ launch_session->exact_target_hold.reset();
     bool success = platf::set_clipboard(content);
 
     if (!success) {
-      BOOST_LOG(debug) << "Setting clipboard failed!";
+      BOOST_LOG(warning) << "[clipboard] Write by ["sv << verified_client->name << "] failed: the OS refused to set the clipboard ("sv << content.size() << " bytes)"sv;
 
       response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
       response->close_connection_after_response = true;
+      return;
     }
 
+    BOOST_LOG(info) << "[clipboard] Write by ["sv << verified_client->name << "]: "sv << content.size() << " bytes set"sv;
     response->write();
     return;
   }
