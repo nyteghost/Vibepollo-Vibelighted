@@ -6,10 +6,12 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 // standard includes
-#if defined(__linux__)
+#if !defined(_WIN32)
+  #include <fcntl.h>
   #include <unistd.h>
 #endif
 #include <algorithm>
+#include <cerrno>
 #include <array>
 #include <cctype>
 #include <atomic>
@@ -6556,6 +6558,15 @@ launch_session->exact_target_hold.reset();
       return;
     }
 
+    // Clipboard text is small; refuse oversized bodies instead of copying them around.
+    constexpr std::size_t clipboard_max_bytes = 4u * 1024u * 1024u;
+    if (request->content.size() > clipboard_max_bytes) {
+      BOOST_LOG(warning) << "[clipboard] Write by ["sv << verified_client->name << "] refused: "sv << request->content.size() << " bytes is over the "sv << clipboard_max_bytes << " byte limit"sv;
+      response->write(SimpleWeb::StatusCode::client_error_payload_too_large);
+      response->close_connection_after_response = true;
+      return;
+    }
+
     std::string content = request->content.string();
 
     bool success = platf::set_clipboard(content);
@@ -6610,6 +6621,46 @@ launch_session->exact_target_hold.reset();
       };
       if (std::find(reserved.begin(), reserved.end(), std::string_view(stem)) != reserved.end()) out.insert(out.begin(), '_');
       return out;
+    }
+
+    /**
+     * Create a new file for an upload, failing with errno == EEXIST when the name is taken.
+     * Never follows a symlink and never truncates an existing file.
+     */
+    std::FILE *open_new_upload_file(const std::filesystem::path &path) {
+#ifdef _WIN32
+      // "x" makes the create exclusive (CREATE_NEW), which also refuses existing links.
+      return _wfopen(path.c_str(), L"wbx");
+#else
+      const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0644);
+      if (fd < 0) {
+        return nullptr;
+      }
+      std::FILE *file = ::fdopen(fd, "wb");
+      if (!file) {
+        const int saved = errno;
+        ::close(fd);
+        std::error_code ignored;
+        std::filesystem::remove(path, ignored);
+        errno = saved;
+      }
+      return file;
+#endif
+    }
+
+    /**
+     * On Windows, tag a received file as coming from another computer (Mark of the Web), so
+     * SmartScreen and Office treat an uploaded program or document with the usual caution.
+     */
+    void mark_upload_from_network([[maybe_unused]] const std::filesystem::path &path) {
+#ifdef _WIN32
+      const std::wstring stream = path.native() + L":Zone.Identifier";
+      if (std::FILE *zone = _wfopen(stream.c_str(), L"wb")) {
+        static constexpr char marker[] = "[ZoneTransfer]\r\nZoneId=3\r\n";
+        std::fwrite(marker, 1, sizeof(marker) - 1, zone);
+        std::fclose(zone);
+      }
+#endif
     }
   }  // namespace
 
@@ -6675,31 +6726,53 @@ launch_session->exact_target_hold.reset();
     }
 
     // Never overwrite: "name.ext", then "name (1).ext", "name (2).ext", ...
+    // Each candidate is created atomically (exclusive create, symlinks not followed), so two
+    // uploads racing for the same name, or a link planted in the folder, cannot redirect or
+    // clobber a file.
     const std::filesystem::path base_path {name};
-    std::filesystem::path target = dir / base_path;
-    for (int n = 1; std::filesystem::exists(target, ec) && n < 1000; ++n) {
-      target = dir / (base_path.stem().string() + " (" + std::to_string(n) + ")" + base_path.extension().string());
+    std::filesystem::path target;
+    std::FILE *out = nullptr;
+    for (int n = 0; n < 1000 && !out; ++n) {
+      target = n == 0 ? dir / base_path : dir / (base_path.stem().string() + " (" + std::to_string(n) + ")" + base_path.extension().string());
+      out = open_new_upload_file(target);
+      if (!out && errno != EEXIST) {
+        break;
+      }
     }
-    if (std::filesystem::exists(target, ec)) {
-      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: too many files named ["sv << name << "]"sv;
-      response->write(SimpleWeb::StatusCode::client_error_conflict);
+    if (!out) {
+      const bool exhausted = errno == EEXIST;
+      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: "sv << (exhausted ? "too many files with that name"sv : "cannot create the file in the receive folder"sv);
+      response->write(exhausted ? SimpleWeb::StatusCode::client_error_conflict : SimpleWeb::StatusCode::server_error_internal_server_error);
       response->close_connection_after_response = true;
       return;
     }
 
     {
-      std::ofstream out(target, std::ios::binary | std::ios::trunc);
-      out << request->content.rdbuf();
-      out.flush();
-      if (!out) {
+      bool ok = true;
+      auto *body = request->content.rdbuf();
+      std::array<char, 64 * 1024> chunk {};
+      for (;;) {
+        const auto got = body->sgetn(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+        if (got <= 0) {
+          break;
+        }
+        if (std::fwrite(chunk.data(), 1, static_cast<std::size_t>(got), out) != static_cast<std::size_t>(got)) {
+          ok = false;
+          break;
+        }
+      }
+      if (std::fclose(out) != 0) {
+        ok = false;
+      }
+      if (!ok) {
         BOOST_LOG(warning) << "[file] Writing ["sv << target.string() << "] failed after "sv << content_size << " bytes (disk full or no permission?)"sv;
-        out.close();
         std::filesystem::remove(target, ec);
         response->write(SimpleWeb::StatusCode::server_error_internal_server_error);
         response->close_connection_after_response = true;
         return;
       }
     }
+    mark_upload_from_network(target);
 
     BOOST_LOG(info) << "[file] Received ["sv << target.filename().string() << "] ("sv << content_size << " bytes) from ["sv << verified_client->name << "] into "sv << dir.string();
     SimpleWeb::CaseInsensitiveMultimap headers;
