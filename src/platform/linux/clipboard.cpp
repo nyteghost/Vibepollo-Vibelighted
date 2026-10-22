@@ -3,6 +3,8 @@
  * @brief Text clipboard access for Vibebeam on a Linux host.
  *
  * Backends, in the order they are tried:
+ *  0. The root-run session broker (when Vibebeam runs as the hardened system service): the
+ *     broker reaches Klipper inside the signed-in user's session on our behalf.
  *  1. KDE Klipper over the session D-Bus (Plasma, X11 or Wayland). No helper program is
  *     needed and it keeps working when no window has focus.
  *  2. wl-clipboard (wl-copy / wl-paste) on a Wayland session.
@@ -44,6 +46,7 @@ namespace platf {
 
     enum class backend_e {
       none,
+      broker,
       klipper,
       wl_clipboard,
       xclip,
@@ -344,6 +347,55 @@ namespace platf {
       return ok;
     }
 
+    // ---- Session broker ------------------------------------------------------------------
+    constexpr const char *session_exec_path = "/usr/libexec/vibeshine/vibepollo-session-exec";
+    constexpr std::size_t broker_max_bytes = 32768;
+
+    bool broker_available() {
+      return std::getenv("VIBEPOLLO_MACHINE_HOST") != nullptr && access(session_exec_path, X_OK) == 0;
+    }
+
+    bool broker_get(std::string &out, std::string &why) {
+      std::string raw;
+      if (!run_tool({session_exec_path, "clipboard-get"}, "", true, raw)) {
+        why = "the session broker could not read Klipper";
+        return false;
+      }
+      GVariant *parsed = g_variant_parse(G_VARIANT_TYPE("(s)"), raw.c_str(), nullptr, nullptr, nullptr);
+      if (!parsed) {
+        why = "unexpected Klipper reply";
+        return false;
+      }
+      const gchar *text = nullptr;
+      g_variant_get(parsed, "(&s)", &text);
+      out.assign(text ? text : "");
+      g_variant_unref(parsed);
+      return true;
+    }
+
+    bool broker_set(const std::string &content, std::string &why) {
+      if (content.empty() || content.find('\0') != std::string::npos) {
+        return true;  // nothing to set; the broker verb rejects empty or NUL-containing text
+      }
+      if (content.size() > broker_max_bytes) {
+        why = "text is larger than the 32 KB the session broker accepts";
+        return false;
+      }
+      static const char digits[] = "0123456789abcdef";
+      std::string hex;
+      hex.reserve(content.size() * 2);
+      for (const unsigned char c : content) {
+        hex.push_back(digits[c >> 4]);
+        hex.push_back(digits[c & 15]);
+      }
+      std::string ignored;
+      if (!run_tool({session_exec_path, "clipboard-set", hex}, "", false, ignored)) {
+        why = "the session broker could not write Klipper";
+        return false;
+      }
+      return true;
+    }
+
     // ---- Backend selection --------------------------------------------------------------
     backend_state_t detect_backend() {
       backend_state_t state;
@@ -354,13 +406,23 @@ namespace platf {
 
       std::string klipper_error;
       std::string probe;
+      if (broker_available()) {
+        std::string broker_why;
+        if (broker_get(probe, broker_why)) {
+          state.backend = backend_e::broker;
+          state.name = "session-broker";
+          state.detail = "KDE Klipper in your desktop session, through the Vibebeam session broker";
+          return state;
+        }
+        state.detail = "session broker clipboard unavailable (" + broker_why + "); ";
+      }
       if (klipper_get(probe, klipper_error)) {
         state.backend = backend_e::klipper;
         state.name = "klipper";
         state.detail = "KDE Klipper over D-Bus";
         return state;
       }
-      state.detail = "Klipper not reachable (" + (klipper_error.empty() ? "no reply"s : klipper_error) + ")";
+      state.detail += "Klipper not reachable (" + (klipper_error.empty() ? "no reply"s : klipper_error) + ")";
       if (is_kde) {
         state.detail += "; running Plasma without Klipper? falling back to generic tools";
       }
@@ -409,6 +471,9 @@ namespace platf {
     std::string why;
     bool ok = false;
     switch (selected.backend) {
+      case backend_e::broker:
+        ok = broker_get(out, why);
+        break;
       case backend_e::klipper:
         ok = klipper_get(out, why);
         break;
@@ -444,6 +509,9 @@ namespace platf {
     std::string ignored;
     bool ok = false;
     switch (selected.backend) {
+      case backend_e::broker:
+        ok = broker_set(content, why);
+        break;
       case backend_e::klipper:
         ok = klipper_set(content, why);
         break;

@@ -1280,6 +1280,56 @@ static bool managed_focus_arguments_are_safe(int argc, char **argv) {
          parse_number(argv[6], 0, 1, &first);
 }
 
+#define CLIPBOARD_MAX_BYTES 32768u
+
+static int clipboard_hex_value(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  return -1;
+}
+
+/* Decode lowercase hex into a NUL-free buffer. Returns the byte count, or -1. */
+static ssize_t clipboard_decode_hex(const char *hex, unsigned char *out, size_t capacity) {
+  const size_t length = strnlen(hex, CLIPBOARD_MAX_BYTES * 2u + 2u);
+  if (length == 0 || (length & 1u) || length / 2u > capacity) return -1;
+  for (size_t i = 0; i < length; i += 2) {
+    const int high = clipboard_hex_value(hex[i]), low = clipboard_hex_value(hex[i + 1]);
+    if (high < 0 || low < 0) return -1;
+    const unsigned char value = (unsigned char) (high << 4 | low);
+    if (value == 0) return -1;
+    out[i / 2] = value;
+  }
+  return (ssize_t) (length / 2u);
+}
+
+static bool clipboard_set_arguments_are_safe(int argc, char **argv) {
+  if (argc != 3) return false;
+  unsigned char scratch[CLIPBOARD_MAX_BYTES];
+  return clipboard_decode_hex(argv[2], scratch, sizeof(scratch)) > 0;
+}
+
+/* Build a GVariant text-format string literal ('...') from raw bytes. The
+ * bytes are only ever data: every quote, backslash and control byte is
+ * escaped, and gdbus rejects invalid UTF-8 itself. Returns a malloc'd string. */
+static char *clipboard_variant_literal(const unsigned char *bytes, size_t length) {
+  char *literal = malloc(length * 6 + 3);
+  if (!literal) return NULL;
+  char *cursor = literal;
+  *cursor++ = '\'';
+  for (size_t i = 0; i < length; ++i) {
+    const unsigned char c = bytes[i];
+    if (c == '\\' || c == '\'') { *cursor++ = '\\'; *cursor++ = (char) c; }
+    else if (c == '\n') { *cursor++ = '\\'; *cursor++ = 'n'; }
+    else if (c == '\r') { *cursor++ = '\\'; *cursor++ = 'r'; }
+    else if (c == '\t') { *cursor++ = '\\'; *cursor++ = 't'; }
+    else if (c < 0x20 || c == 0x7f) cursor += sprintf(cursor, "\\u%04x", c);
+    else *cursor++ = (char) c;
+  }
+  *cursor++ = '\'';
+  *cursor = 0;
+  return literal;
+}
+
 static bool display_observe_arguments_are_safe(int argc, char **argv) {
   return argc == 2 && (!strcmp(argv[1], "display-observe") || !strcmp(argv[1], "display-observe-events"));
 }
@@ -1325,7 +1375,8 @@ static int execute_request(int argc, char **argv,
   enum operation {
     DISPLAY_QUERY, DISPLAY_APPLY, DISPLAY_OBSERVE, DISPLAY_POWER, DISPLAY_WAKE, DISPLAY_INHIBIT, TOUCH_MAP, AUDIO_GET_DEFAULT, AUDIO_LIST_SINKS, AUDIO_SET_DEFAULT,
     AUDIO_CREATE_NULL, AUDIO_REMOVE_NULL, AUDIO_CAPTURE, STEAM, STEAM_BIG_PICTURE, STEAM_DIRECT, GLOBAL_LIMITER, LUTRIS, LUTRIS_WAYLAND_HDR, MANAGED_FOCUS,
-    PROVIDER_STEAM_SCAN, PROVIDER_LUTRIS_SCAN, PROVIDER_STEAM_ARTWORK, PROVIDER_LUTRIS_ARTWORK, APP, APP_WAYLAND_HDR
+    PROVIDER_STEAM_SCAN, PROVIDER_LUTRIS_SCAN, PROVIDER_STEAM_ARTWORK, PROVIDER_LUTRIS_ARTWORK, APP, APP_WAYLAND_HDR,
+    CLIPBOARD_GET, CLIPBOARD_SET
   } operation;
   unsigned long first_number = 0, second_number = 0, third_number = 0;
   unsigned char channel_mapping[8] = {0};
@@ -1351,6 +1402,9 @@ static int execute_request(int argc, char **argv,
   else if (!strcmp(argv[1], "touch-map") && argc == 4 &&
            touch_map_arguments_are_safe(argv[2], argv[3])) operation = TOUCH_MAP;
   else if (!strcmp(argv[1], "display-apply") && display_apply_arguments_are_safe(argc, argv)) operation = DISPLAY_APPLY;
+  else if (!strcmp(argv[1], "clipboard-get") && argc == 2 && !strcmp(identity->role, "desktop")) operation = CLIPBOARD_GET;
+  else if (!strcmp(argv[1], "clipboard-set") && !strcmp(identity->role, "desktop") &&
+           clipboard_set_arguments_are_safe(argc, argv)) operation = CLIPBOARD_SET;
   else if (!strcmp(argv[1], "audio-get-default") && argc == 2) operation = AUDIO_GET_DEFAULT;
   else if (!strcmp(argv[1], "audio-list-sinks") &&
            (argc == 2 || (argc == 3 && !strcmp(argv[2], "details")))) operation = AUDIO_LIST_SINKS;
@@ -1452,6 +1506,23 @@ static int execute_request(int argc, char **argv,
       argv[1] = "kscreen-doctor";
       execv("/usr/bin/kscreen-doctor", &argv[1]);
       break;
+    case CLIPBOARD_GET: {
+      /* KDE Klipper owns the desktop clipboard; read it through the user's session bus. */
+      char *const arguments[] = {"gdbus", "call", "--session", "--timeout", "3", "--dest", "org.kde.klipper",
+        "--object-path", "/klipper", "--method", "org.kde.klipper.klipper.getClipboardContents", NULL};
+      execv("/usr/bin/gdbus", arguments);
+      break;
+    }
+    case CLIPBOARD_SET: {
+      unsigned char text[CLIPBOARD_MAX_BYTES];
+      const ssize_t length = clipboard_decode_hex(argv[2], text, sizeof(text));
+      char *literal = length > 0 ? clipboard_variant_literal(text, (size_t) length) : NULL;
+      if (!literal) return 126;
+      char *const arguments[] = {"gdbus", "call", "--session", "--timeout", "3", "--dest", "org.kde.klipper",
+        "--object-path", "/klipper", "--method", "org.kde.klipper.klipper.setClipboardContents", literal, NULL};
+      execv("/usr/bin/gdbus", arguments);
+      break;
+    }
     case AUDIO_GET_DEFAULT: {
       char *const arguments[] = {"pactl", "get-default-sink", NULL};
       execv("/usr/bin/pactl", arguments);
