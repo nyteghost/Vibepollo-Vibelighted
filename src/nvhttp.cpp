@@ -6701,6 +6701,11 @@ launch_session->exact_target_hold.reset();
       }
     }
 
+    // The service runs with a private umask, which would leave the file unreadable to the
+    // person it was sent to when the folder lives in their account. Make it world-readable
+    // (never executable); the folder's own permissions still decide who can reach it.
+    std::filesystem::permissions(target, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write | std::filesystem::perms::group_read | std::filesystem::perms::others_read, std::filesystem::perm_options::replace, ec);
+
     BOOST_LOG(info) << "[file] Received ["sv << target.filename().string() << "] ("sv << content_size << " bytes) from ["sv << verified_client->name << "] into "sv << dir.string();
     SimpleWeb::CaseInsensitiveMultimap headers;
     headers.emplace("Content-Type", "text/plain; charset=utf-8");

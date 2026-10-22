@@ -22,6 +22,7 @@ const copied = ref(false);
 
 const labels: Record<string, string> = {
   kernel: 'Kernel',
+  reboot: 'Update finished',
   dkms: 'Module build',
   module: 'Module loaded',
   connectors: 'Virtual displays',
