@@ -487,7 +487,7 @@ vibepollo_stop_host_for_package() (
   fi
   command -v vibepollo_package_log_force_outcome >/dev/null 2>&1 && \
     vibepollo_package_log_force_outcome pending || return 1
-  echo 'warning: forced shutdown authorized; terminating the fenced Vibepollo service cgroup after its graceful deadline.' >&2
+  echo 'warning: forced shutdown authorized; terminating the fenced Vibebeam service cgroup after its graceful deadline.' >&2
   timeout --signal=KILL 5 systemctl kill --signal=KILL \
     vibepollo.service 2>/dev/null || {
       vibepollo_package_log_force_outcome kill-failed || :
@@ -504,7 +504,7 @@ vibepollo_stop_host_for_package() (
   while :; do
     if vibepollo_unit_is_quiescent vibepollo.service; then
       vibepollo_package_log_force_outcome complete || return 1
-      echo 'Vibepollo forced shutdown completed; the old service cgroup is empty.' >&2
+      echo 'Vibebeam forced shutdown completed; the old service cgroup is empty.' >&2
       return 0
     fi
     vibepollo_read_host_stop_identity || return 1
@@ -518,7 +518,7 @@ vibepollo_stop_host_for_package() (
     sleep 0.1
   done
   vibepollo_package_log_force_outcome still-populated || :
-  echo 'error: forced shutdown did not empty the old Vibepollo service cgroup; replacement remains blocked.' >&2
+  echo 'error: forced shutdown did not empty the old Vibebeam service cgroup; replacement remains blocked.' >&2
   return 1
 )
 
@@ -1235,7 +1235,7 @@ vibepollo_package_preserve_unowned_host_mask() {
   if [ "$vibepollo_package_mask_verified" -ne 1 ] ||
      ! vibepollo_unit_is_quiescent vibepollo.service ||
      ! vibepollo_package_no_jobs; then
-    echo 'error: an unowned Vibepollo host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
+    echo 'error: an unowned Vibebeam host mask exists, but the host is active, populated, has a pending job, or its state is uncertain; package replacement is blocked. Force cannot remove an administrator or legacy mask without proving its activation ownership.' >&2
     return 1
   fi
   # Preserve the actual mask and any unowned fence byte-for-byte. The mask
@@ -2039,7 +2039,7 @@ vibepollo_remove_or_abort() (
 case "${1:-}" in
   remove | purge | 0)
     if ! vibepollo_remove_or_abort; then
-      echo "error: refusing to uninstall while Vibepollo cgroups or session state remain." >&2
+      echo "error: refusing to uninstall while Vibebeam cgroups or session state remain." >&2
       exit 1
     fi
     if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
@@ -2052,7 +2052,7 @@ case "${1:-}" in
     fi
     if [ -x "@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibeshine-drm-install" ]; then
       "@VIBESHINE_PRIVILEGED_LIBEXEC_INSTALL_DIR@/vibeshine-drm-install" remove || \
-        echo "warning: could not remove the Vibepollo HDR DRM module cleanly."
+        echo "warning: could not remove the Vibebeam HDR DRM module cleanly."
     fi
     ;;
 esac

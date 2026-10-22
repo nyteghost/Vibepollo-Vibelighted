@@ -265,6 +265,25 @@ namespace nvhttp {
   namespace fs = std::filesystem;
   namespace pt = boost::property_tree;
 
+  namespace {
+    // The HTTP server buffers the whole body in memory, so keep this well below the service's
+    // memory ceiling.
+    constexpr std::size_t file_upload_max_bytes = 512ull * 1024ull * 1024ull;  // 512 MiB
+
+    /**
+     * Largest clipboard text this host accepts from a client. Advertised in serverinfo so
+     * clients can warn before sending.
+     */
+    std::size_t clipboard_write_limit_bytes() {
+#if defined(__linux__)
+      return platf::clipboard_write_limit();
+#else
+      return 4u * 1024u * 1024u;
+#endif
+    }
+  }  // namespace
+
+
   using p_named_cert_t = crypto::p_named_cert_t;
   using PERM = crypto::PERM;
   using verified_client_t = std::optional<crypto::named_cert_t>;
@@ -4023,6 +4042,9 @@ namespace nvhttp {
 #else
       tree.put("root.VibebeamHostOS", "other");
 #endif
+      // Limits, so Vibelight can refuse an oversized file or paste up front with a clear message.
+      tree.put("root.VibebeamMaxUploadBytes", file_upload_max_bytes);
+      tree.put("root.VibebeamMaxClipboardBytes", clipboard_write_limit_bytes());
       tree.put("root.uniqueid", http::unique_id);
       tree.put("root.HttpsPort", net::map_port(PORT_HTTPS));
       tree.put("root.HardwareMetricsVersion", metrics_supported ? 1 : 0);
@@ -6558,8 +6580,8 @@ launch_session->exact_target_hold.reset();
       return;
     }
 
-    // Clipboard text is small; refuse oversized bodies instead of copying them around.
-    constexpr std::size_t clipboard_max_bytes = 4u * 1024u * 1024u;
+    // Refuse text the clipboard backend cannot take with a clear 413, before copying it around.
+    const std::size_t clipboard_max_bytes = clipboard_write_limit_bytes();
     if (request->content.size() > clipboard_max_bytes) {
       BOOST_LOG(warning) << "[clipboard] Write by ["sv << verified_client->name << "] refused: "sv << request->content.size() << " bytes is over the "sv << clipboard_max_bytes << " byte limit"sv;
       response->write(SimpleWeb::StatusCode::client_error_payload_too_large);
@@ -6585,10 +6607,6 @@ launch_session->exact_target_hold.reset();
   }
 
   namespace {
-    // The HTTP server buffers the whole body in memory, so keep this well below the service's
-    // memory ceiling.
-    constexpr std::size_t file_upload_max_bytes = 512ull * 1024ull * 1024ull;  // 512 MiB
-
     /**
      * Reduce a client-supplied file name to a safe single path component.
      * Returns an empty string when nothing usable remains.
