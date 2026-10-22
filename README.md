@@ -1,4 +1,12 @@
-# Vibepollo
+# Vibebeam
+
+Vibebeam is the companion host for [Vibelight](https://github.com/nyteghost/moonlight-qt). It is an unofficial fork of [Vibepollo](https://github.com/Nonary/Vibepollo) by Nonary, which is based on [Apollo](https://github.com/ClassicOldSong/Apollo) by ClassicOldSong and [Sunshine](https://github.com/LizardByte/Sunshine). All of the host's streaming, capture and display work is theirs; this fork adds a few things for use with Vibelight (text clipboard sync and, over time, file transfer) and changes where updates come from. It is licensed under GPLv3 like the projects it is based on (see [LICENSE](LICENSE)). Please don't report problems with this fork to Nonary or the other upstream projects.
+
+A scheduled workflow keeps a branch named `upstream-main` identical to Nonary's Vibepollo and opens a pull request here when there are new changes.
+
+---
+
+# Vibepollo (upstream README)
 
 ## What is Vibepollo?
 

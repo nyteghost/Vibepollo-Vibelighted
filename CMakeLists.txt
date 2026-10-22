@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Vibepollo VERSION 0.0.0
         DESCRIPTION "Self-hosted game stream host for Moonlight"
-        HOMEPAGE_URL "https://github.com/Nonary/Vibepollo")
+        HOMEPAGE_URL "https://github.com/nyteghost/vibebeam")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
