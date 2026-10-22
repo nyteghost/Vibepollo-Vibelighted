@@ -1345,8 +1345,19 @@ namespace platf::linux_private_display {
       refresh = display_device::Rational {static_cast<unsigned int>(std::max(1, session.fps)), 1};
     }
 
+    // A managed output can synthesize the exact size the client asked for, but only
+    // when a refresh rate is known. If the display settings left it unset, fall back
+    // to the stream's frame rate rather than silently skipping the custom mode.
+    if (resolution && !refresh && session.fps > 0 && is_managed_output(session.virtual_display_device_id)) {
+      refresh = display_device::Rational {static_cast<unsigned int>(session.fps), 1};
+    }
     auto mode_id = best_mode_id(*target_before, resolution, refresh);
     const bool prefer_highest = refresh && floating_point(*refresh) >= 9999.0;
+    BOOST_LOG(info) << "[display-mode] " << session.virtual_display_device_id << ": wants "
+                    << (resolution ? std::to_string(resolution->m_width) + "x" + std::to_string(resolution->m_height) : std::string("any size"))
+                    << " at " << (refresh ? std::to_string(floating_point(*refresh)) + " Hz" : std::string("any rate"))
+                    << ", managed=" << is_managed_output(session.virtual_display_device_id)
+                    << ", exact mode already listed=" << !mode_id.empty();
     if (mode_policy::should_admit_requested_mode(
           resolution.has_value(),
           refresh.has_value(),
