@@ -106,6 +106,7 @@
 #include "rtsp_pending_policy.h"
 #include "stream.h"
 #include "system_tray.h"
+#include "two_factor.h"
 #include "video.h"
 #include "webrtc_stream.h"
 #include "zwpad.h"
@@ -2436,7 +2437,7 @@ namespace nvhttp {
               named_cert_p->output_name_override = el.value("output_name_override", "");
               named_cert_p->virtual_display_mode_override = el.value("virtual_display_mode", "");
               named_cert_p->virtual_display_layout_override = el.value("virtual_display_layout", "");
-              named_cert_p->perm = (PERM) (util::get_non_string_json_value<uint32_t>(el, "perm", (uint32_t) PERM::_all)) & PERM::_all;
+              named_cert_p->perm = (PERM) (util::get_non_string_json_value<uint32_t>(el, "perm", (uint32_t) PERM::_all)) & PERM::_all_persisted;
               // Imported Vibeshine pairings use a boolean instead of Apollo's
               // permission mask. Never reactivate a disabled imported client.
               if (!util::get_non_string_json_value<bool>(el, "enabled", true)) {
@@ -3566,6 +3567,26 @@ namespace nvhttp {
       return !!(client_perm(verified_client) & perm);
     }
 
+    /**
+     * @brief Vibebeam two-factor gate for launch/resume. Fills `tree` and returns true when the request must stop.
+     */
+    template<class Request>
+    bool reject_for_two_factor(pt::ptree &tree, const Request &request, const verified_client_t &verified_client, const std::string &client_uuid) {
+      const auto args = request->parse_query_string();
+      const auto code = get_arg(args, std::string(two_factor::kCodeParameter).c_str(), "");
+      const auto outcome = two_factor::check(client_uuid, code, has_client_perm(verified_client, PERM::skip_2fa));
+      if (outcome == two_factor::result_e::ok) {
+        return false;
+      }
+      if (outcome != two_factor::result_e::required) {
+        BOOST_LOG(warning) << "Two-factor code refused for client "sv << client_uuid << ": "sv << two_factor::status_message(outcome);
+      }
+      tree.put("root.resume", 0);
+      tree.put("root.<xmlattr>.status_code", two_factor::status_code(outcome));
+      tree.put("root.<xmlattr>.status_message", two_factor::status_message(outcome));
+      return true;
+    }
+
     // Require current certificate-bound authority with View or Launch permission.
     hardware_metrics::access_t hardware_metrics_access(req_https_t request) {
       const auto settings = config::get_hardware_metrics_settings();
@@ -3684,6 +3705,10 @@ namespace nvhttp {
       if (!query.empty()) {
         BOOST_LOG(verbose) << "Query Params:"sv;
         for (auto &[name, val] : query) {
+          if (name == two_factor::kCodeParameter) {
+            BOOST_LOG(verbose) << name << " -- (hidden)"sv;
+            continue;
+          }
           BOOST_LOG(verbose) << name << " -- " << val;
         }
       }
@@ -4591,6 +4616,9 @@ namespace nvhttp {
         tree.put("root.resume", 0);
         tree.put("root.<xmlattr>.status_code", 403);
         tree.put("root.<xmlattr>.status_message", "A paired TLS client identity is required");
+        return;
+      }
+      if (reject_for_two_factor(tree, request, verified_client, request_client_identity.uuid)) {
         return;
       }
 
@@ -5635,6 +5663,9 @@ launch_session->exact_target_hold.reset();
       tree.put("root.<xmlattr>.status_code", 403);
       tree.put("root.<xmlattr>.status_message", permission_denied_status_message(verified_client, "View stream"sv));
 
+      return;
+    }
+    if (reject_for_two_factor(tree, request, verified_client, request_client_identity.uuid)) {
       return;
     }
 
@@ -6973,6 +7004,7 @@ launch_session->exact_target_hold.reset();
 
   void start() {
     platf::set_thread_name("nvhttp");
+    two_factor::set_state_path(platf::appdata() / "two_factor.json");
 #if defined(__linux__)
     log_linux_host_checks();
 #endif
