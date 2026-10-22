@@ -4001,6 +4001,18 @@ namespace nvhttp {
 
       tree.put("root.appversion", VERSION);
       tree.put("root.GfeVersion", GFE_VERSION);
+      // Vibebeam extras so Vibelight can tell what this host supports and which OS it runs
+      tree.put("root.VibebeamVersion", VERSION);
+      tree.put("root.VibebeamFeatures", "clipboard,files");
+#if defined(_WIN32)
+      tree.put("root.VibebeamHostOS", "windows");
+#elif defined(__APPLE__)
+      tree.put("root.VibebeamHostOS", "macos");
+#elif defined(__linux__)
+      tree.put("root.VibebeamHostOS", "linux");
+#else
+      tree.put("root.VibebeamHostOS", "other");
+#endif
       tree.put("root.uniqueid", http::unique_id);
       tree.put("root.HttpsPort", net::map_port(PORT_HTTPS));
       tree.put("root.HardwareMetricsVersion", metrics_supported ? 1 : 0);
