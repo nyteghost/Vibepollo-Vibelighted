@@ -10,6 +10,7 @@
 #include <cctype>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -2130,6 +2131,14 @@ namespace config {
     path_f(vars, "cert", nvhttp.cert);
     string_f(vars, "sunshine_name", nvhttp.sunshine_name);
     path_f(vars, "log_path", config::sunshine.log_file);
+#if defined(__linux__)
+    // Files sent from Vibelight land in ~/Downloads/Vibebeam unless the user chose a folder.
+    if (vars.find("file_transfer_dir") == vars.end()) {
+      if (const char *home = std::getenv("HOME"); home && *home) {
+        config::sunshine.file_transfer_dir = (std::filesystem::path(home) / "Downloads" / "Vibebeam").string();
+      }
+    }
+#endif
     path_f(vars, "file_transfer_dir", config::sunshine.file_transfer_dir);
     path_f(vars, "file_state", nvhttp.file_state);
     path_f(vars, "vibeshine_file_state", nvhttp.vibeshine_file_state);
