@@ -116,8 +116,19 @@ namespace platf::linux_display_health {
     bool dkms_built = false;
     const auto dkms = dkms_entries(kernel, dkms_built);
 
+    // A kernel update replaces the running kernel's module directory; until you reboot, the
+    // system cannot load modules for it, so the virtual display cannot appear.
+    std::error_code modules_ec;
+    const bool kernel_files_present = fs::exists("/usr/lib/modules/" + kernel, modules_ec);
+
     nlohmann::json checks = nlohmann::json::array();
     checks.push_back(check("kernel", true, "Running kernel " + kernel));
+    checks.push_back(check(
+      "reboot",
+      kernel_files_present,
+      kernel_files_present ? "The running kernel's files are present" :
+                             "The running kernel's files are gone: the system was updated since it started"
+    ));
     checks.push_back(check(
       "dkms",
       dkms_built,
@@ -141,6 +152,9 @@ namespace platf::linux_display_health {
     std::string summary;
     if (!connectors.empty()) {
       summary = "The virtual display is ready.";
+    } else if (!kernel_files_present) {
+      summary = "The system was updated while it was running, so the running kernel can no longer load modules. Reboot to finish the update.";
+      fixes.push_back("sudo reboot");
     } else if (!dkms_built) {
       summary = "The virtual display module has not been built for the kernel you are running. A kernel update usually causes this.";
       fixes.push_back("sudo pacman -S --needed linux-cachyos-headers   # use the headers package that matches your kernel");

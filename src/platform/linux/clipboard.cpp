@@ -14,6 +14,7 @@
 // standard includes
 #include <cerrno>
 #include <cstdlib>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <mutex>
@@ -446,17 +447,40 @@ namespace platf {
       return state;
     }
 
-    const backend_state_t &backend() {
-      static std::once_flag once;
+    /**
+     * @brief The selected backend, detected on first use.
+     *
+     * The session broker is not ready for a short while after boot. If a weaker backend was
+     * chosen in that window, look at the broker again (at most every 10 seconds) so the
+     * clipboard upgrades to it without a service restart.
+     */
+    backend_state_t backend() {
+      static std::mutex mutex;
+      static bool detected = false;
       static backend_state_t state;
-      std::call_once(once, [] {
+      static std::chrono::steady_clock::time_point last_broker_probe {};
+      std::lock_guard lock {mutex};
+      const auto now = std::chrono::steady_clock::now();
+      if (!detected) {
         state = detect_backend();
+        detected = true;
+        last_broker_probe = now;
         if (state.backend == backend_e::none) {
           BOOST_LOG(warning) << "[clipboard] No clipboard backend available: "sv << state.detail;
         } else {
           BOOST_LOG(info) << "[clipboard] Using "sv << state.name << " ("sv << state.detail << ")"sv;
         }
-      });
+      } else if (state.backend != backend_e::broker && broker_available() && now - last_broker_probe >= std::chrono::seconds(10)) {
+        last_broker_probe = now;
+        std::string probe;
+        std::string why;
+        if (broker_get(probe, why)) {
+          state.backend = backend_e::broker;
+          state.name = "session-broker";
+          state.detail = "KDE Klipper in your desktop session, through the Vibebeam session broker";
+          BOOST_LOG(info) << "[clipboard] Switched to "sv << state.name << " ("sv << state.detail << ")"sv;
+        }
+      }
       return state;
     }
   }  // namespace
@@ -466,7 +490,7 @@ namespace platf {
   }
 
   std::string get_clipboard() {
-    const auto &selected = backend();
+    const auto selected = backend();
     std::string out;
     std::string why;
     bool ok = false;
@@ -504,7 +528,7 @@ namespace platf {
   }
 
   bool set_clipboard(const std::string &content) {
-    const auto &selected = backend();
+    const auto selected = backend();
     std::string why;
     std::string ignored;
     bool ok = false;
