@@ -525,6 +525,7 @@ namespace config {
     int hardware_metrics_interval {1000};  ///< Minimum client sample interval, in milliseconds
     bool realtime_stats_enabled {true};  ///< Sample live host stats (CPU/GPU/RAM/VRAM) for the web UI
     int realtime_stats_poll_interval_ms {2000};  ///< Host stats sampler interval in milliseconds
+    std::string file_transfer_dir {"received-files"};  ///< Folder for files uploaded by clients (relative paths are under the config folder)
   };
 
   extern video_t video;
