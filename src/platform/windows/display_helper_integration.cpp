@@ -528,7 +528,7 @@ namespace {
     const display_helper_integration::DisplayTopologyDefinition &topology,
     const char *label
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     if (topology.topology.empty() && topology.monitor_positions.empty()) {
       return true;
@@ -588,7 +588,7 @@ namespace {
   display_device::SettingsManagerInterface::ApplyResult apply_in_process(
     const display_helper_integration::DisplayApplyRequest &request
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return display_device::SettingsManagerInterface::ApplyResult::DevicePrepFailed;
     if (!request.configuration) {
       BOOST_LOG(error) << "Display helper (in-process): no configuration provided for APPLY request.";
@@ -1020,7 +1020,7 @@ namespace {
   }
 
   static bool restore_physical_settings_snapshot(const physical_settings_snapshot_t &snapshot) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     try {
       auto api = std::make_shared<display_device::WinApiLayer>();
@@ -2621,7 +2621,7 @@ namespace display_helper_integration {
     ApplyRetryPolicy retry_policy,
     std::chrono::steady_clock::time_point startup_deadline,
     const bool shutdown_class_caller) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     const auto verification_timeout =
       retry_policy == ApplyRetryPolicy::StreamStart ?
@@ -2691,7 +2691,7 @@ namespace display_helper_integration {
     RecoveryTicket *recovery_ticket,
     const RevertOwnershipPolicy ownership_policy,
     const FinalRestoreDisplayPolicy display_policy) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     if (recovery_ticket) *recovery_ticket = {};
     const bool managed_cleanup_allowed = remote_display_topology::instance().generic_virtual_display_cleanup_allowed();
@@ -2807,7 +2807,7 @@ namespace display_helper_integration {
   }
 
   bool run_terminal_physical_recovery(const std::function<bool()> &recover) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     std::unique_lock execution_lock(pending_apply_execution_mutex());
     invalidate_apply_verification();
@@ -2966,7 +2966,7 @@ namespace display_helper_integration {
   }
 
   bool apply_pending_if_ready(std::function<bool()> cancellation_predicate) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     const auto cancelled = [&] {
       return cancellation_predicate && cancellation_predicate();
@@ -3438,7 +3438,7 @@ namespace display_helper_integration {
   }
 
   bool apply_remote_composed_topology(const DisplayTopologyDefinition &topology) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(false);
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(false);
     if (!borrowed_output_mutation) return false;
     return apply_topology_definition(topology, "remote-monitor coordinator");
   }

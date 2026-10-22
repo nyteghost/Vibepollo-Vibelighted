@@ -146,9 +146,9 @@ namespace display_device {
   private:
     template<typename T, class Fn>
     T run(Fn &&fn, bool mutating) const {
-      auto borrow_mutation = mutating ? display_helper::borrow::native_mutation_scope_t::enter(
-        display_helper::borrow::helper_process().load(std::memory_order_acquire)) :
-        display_helper::borrow::native_mutation_scope_t {};
+      auto borrow_mutation = mutating ? ::display_helper::borrow::native_mutation_scope_t::enter(
+        ::display_helper::borrow::helper_process().load(std::memory_order_acquire)) :
+        ::display_helper::borrow::native_mutation_scope_t {};
       if (mutating && !borrow_mutation) return T {};
       // If we are not running as SYSTEM, just call through.
       if (!platf::is_running_as_system()) {

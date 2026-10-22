@@ -24,14 +24,14 @@
 
 namespace platf::windows_borrow {
   namespace detail {
-    inline std::optional<std::shared_ptr<void>> pin_helper_resource(const display_helper::borrow::result_t &reply) {
+    inline std::optional<std::shared_ptr<void>> pin_helper_resource(const ::display_helper::borrow::result_t &reply) {
       const auto host_resources = VDISPLAY::retain_borrow_native_resources();
       if (!host_resources) return std::nullopt;
       if (reply.native_keepalive_handle == 0) return *host_resources;
       if (reply.native_keepalive_handle > std::numeric_limits<std::uintptr_t>::max()) return std::nullopt;
       HANDLE helper = OpenProcess(PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, reply.token.helper.pid);
       if (!helper) return std::nullopt;
-      const auto actual = display_helper::borrow::process_context(helper, reply.token.helper.pid);
+      const auto actual = ::display_helper::borrow::process_context(helper, reply.token.helper.pid);
       HANDLE duplicate = nullptr;
       const bool pinned = actual && *actual == reply.token.helper && DuplicateHandle(helper,
         reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(reply.native_keepalive_handle)),
@@ -123,7 +123,7 @@ namespace platf::windows_borrow {
         *output, {}};
     }
 
-    inline display_helper::borrow::consumer_t &consumer(const std::function<std::string()> &shared_guid_snapshot) {
+    inline ::display_helper::borrow::consumer_t &consumer(const std::function<std::string()> &shared_guid_snapshot) {
       using namespace display_helper::borrow;
       static consumer_t value(process_gate(), consumer_ports_t {
         .context = current_context,
@@ -155,7 +155,7 @@ namespace platf::windows_borrow {
 
   inline void register_exact_target_probe(std::function<std::string()> shared_guid_snapshot) {
     remote_session::register_exact_target_probe([shared_guid_snapshot=std::move(shared_guid_snapshot)](const display_target::descriptor_t &target) {
-      if(display_helper::borrow::process_teardown_started().load(std::memory_order_acquire))
+      if(::display_helper::borrow::process_teardown_started().load(std::memory_order_acquire))
         return std::optional<display_target::observation_t>{};
       return detail::consumer(shared_guid_snapshot).observe(target);
     });

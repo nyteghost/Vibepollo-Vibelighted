@@ -76,7 +76,11 @@ namespace display_helper::borrow {
     return mutex;
   }
 
-  inline thread_local std::size_t native_mutex_depth = 0;
+  // Function-local for the same reason as the gate's depth map (duplicate TLS init symbols).
+  inline std::size_t &native_mutex_depth_ref() {
+    static thread_local std::size_t depth = 0;
+    return depth;
+  }
 
   class native_mutation_scope_t {
   public:
@@ -85,7 +89,7 @@ namespace display_helper::borrow {
     native_mutation_scope_t &operator=(const native_mutation_scope_t &) = delete;
     native_mutation_scope_t(native_mutation_scope_t &&other) noexcept
       : local_(std::move(other.local_)), mutex_(std::exchange(other.mutex_, nullptr)) {}
-    ~native_mutation_scope_t() { if (mutex_) { --native_mutex_depth; ReleaseMutex(mutex_); CloseHandle(mutex_); } }
+    ~native_mutation_scope_t() { if (mutex_) { --native_mutex_depth_ref(); ReleaseMutex(mutex_); CloseHandle(mutex_); } }
     explicit operator bool() const { return static_cast<bool>(local_); }
     // All host paths close/drain the shared process gate. Helper native work
     // additionally owns the cross-process mutex retained by a borrowed host.
@@ -94,14 +98,14 @@ namespace display_helper::borrow {
     static native_mutation_scope_t enter(bool wait, const std::function<bool()> &cancelled = {}) {
       native_mutation_scope_t result;
       auto &gate = process_gate();
-      const bool nested = native_mutex_depth != 0;
+      const bool nested = native_mutex_depth_ref() != 0;
       result.local_ = wait ? gate.wait_enter(cancelled) : gate.try_enter();
       if (!result.local_ || !helper_process().load(std::memory_order_acquire)) return result;
       result.mutex_ = open_mutation_mutex(current_context());
       if (!result.mutex_) { result.local_.reset(); return result; }
       while (true) {
         const auto status = WaitForSingleObject(result.mutex_, 25);
-        if (status == WAIT_OBJECT_0 || status == WAIT_ABANDONED) { ++native_mutex_depth; return result; }
+        if (status == WAIT_OBJECT_0 || status == WAIT_ABANDONED) { ++native_mutex_depth_ref(); return result; }
         if (status != WAIT_TIMEOUT || (cancelled && cancelled()) || (!nested && (!wait || gate.inhibited()))) {
           CloseHandle(result.mutex_); result.mutex_ = nullptr; result.local_.reset(); return result;
         }

@@ -246,7 +246,8 @@ jobs:
       publish_symbols: ${{ needs.release-candidate.outputs.should_release == 'true' }}
       symbol_release_draft: true
       symbol_release_prefix: polo
-      require_truehdr_runtime: ${{ needs.release-candidate.outputs.should_release == 'true' }}
+      # The portable ZIP always needs vibeshine_truehdr.dll, so every build fetches it.
+      require_truehdr_runtime: true
     secrets:
       symbol_token: ${{ secrets.SYMBOL_TOKEN }}
       truehdr_runtime_token: ${{ secrets.TRUEHDR_RUNTIME_TOKEN }}

@@ -256,7 +256,7 @@ namespace VDISPLAY {
     const std::wstring &profile_name,
     const bool system_wide
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return {};
     advanced_color_profile_result_t result;
     const auto &api = advanced_color_api();
@@ -316,7 +316,7 @@ namespace VDISPLAY {
     const std::wstring &profile_name,
     const bool system_wide
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return {};
     advanced_color_profile_result_t result;
     const auto &api = advanced_color_api();
@@ -343,7 +343,7 @@ namespace VDISPLAY {
     const std::wstring &monitor_device_path,
     const std::uint32_t scale_percent
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return {};
     display_scale_result_t result;
     result.requested_percent = scale_percent;
@@ -671,20 +671,20 @@ namespace VDISPLAY {
   }
 
   void closeVDisplayDevice() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     VDISPLAY_SUNSHINE::closeVDisplayDevice();
     VDISPLAY_SUDOVDA::closeVDisplayDevice();
   }
 
   DRIVER_STATUS openVDisplayDevice() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return DRIVER_STATUS::FAILED;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::openVDisplayDevice() : VDISPLAY_SUDOVDA::openVDisplayDevice();
   }
 
   bool ensure_driver_is_ready() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::ensure_driver_is_ready() : VDISPLAY_SUDOVDA::ensure_driver_is_ready();
   }
@@ -694,7 +694,7 @@ namespace VDISPLAY {
   }
 
   void setWatchdogFeedingEnabled(bool enable) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     if (use_sunshine_driver()) {
       VDISPLAY_SUNSHINE::setWatchdogFeedingEnabled(enable);
@@ -709,7 +709,7 @@ namespace VDISPLAY {
     const std::uint64_t dedicated_video_memory,
     const std::uint64_t shared_system_memory
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ?
              VDISPLAY_SUNSHINE::setRenderAdapterByLuid(
@@ -727,13 +727,13 @@ namespace VDISPLAY {
   }
 
   bool setRenderAdapterByName(const std::wstring &adapterName) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::setRenderAdapterByName(adapterName) : VDISPLAY_SUDOVDA::setRenderAdapterByName(adapterName);
   }
 
   bool setRenderAdapterWithMostDedicatedMemory() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::setRenderAdapterWithMostDedicatedMemory() : VDISPLAY_SUDOVDA::setRenderAdapterWithMostDedicatedMemory();
   }
@@ -798,7 +798,7 @@ namespace VDISPLAY {
   }
 
   void ensureVirtualDisplayRegistryDefaults() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     if (use_sunshine_driver()) {
       VDISPLAY_SUNSHINE::ensureVirtualDisplayRegistryDefaults();
@@ -824,7 +824,7 @@ namespace VDISPLAY {
     bool preserve_peer_displays,
     bool requested_resolution_only
   ) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return {};
     if (use_sunshine_driver()) {
       return VDISPLAY_SUNSHINE::createVirtualDisplay(s_client_uid, s_client_name, s_hdr_profile, width, height, fps, guid, base_fps_millihz, framegen_refresh_active, framegen_refresh_multiplier, hdr_requested, allow_pending_enumeration, replace_existing, preserve_peer_displays, requested_resolution_only);
@@ -854,7 +854,7 @@ namespace VDISPLAY {
   }
 
   void applyHdrProfileToOutput(const char *s_client_name, const char *s_hdr_profile, const char *s_device_id) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     if (use_sunshine_driver()) {
       VDISPLAY_SUNSHINE::applyHdrProfileToOutput(s_client_name, s_hdr_profile, s_device_id);
@@ -864,20 +864,20 @@ namespace VDISPLAY {
   }
 
   void restorePhysicalHdrProfiles() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return ;
     VDISPLAY_SUNSHINE::restorePhysicalHdrProfiles();
     VDISPLAY_SUDOVDA::restorePhysicalHdrProfiles();
   }
 
   bool removeVirtualDisplay(const GUID &guid) {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::removeVirtualDisplay(guid) : VDISPLAY_SUDOVDA::removeVirtualDisplay(guid);
   }
 
   bool removeAllVirtualDisplays() {
-    auto borrowed_output_mutation = display_helper::borrow::native_mutation_scope_t::enter(display_helper::borrow::helper_process().load(std::memory_order_acquire));
+    auto borrowed_output_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(::display_helper::borrow::helper_process().load(std::memory_order_acquire));
     if (!borrowed_output_mutation) return false;
     return use_sunshine_driver() ? VDISPLAY_SUNSHINE::removeAllVirtualDisplays() : VDISPLAY_SUDOVDA::removeAllVirtualDisplays();
   }

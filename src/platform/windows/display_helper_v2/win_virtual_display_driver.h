@@ -29,14 +29,14 @@ namespace display_helper::v2 {
     }
 
     bool disable() override {
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrow_mutation) return false;
       close_handle();
       return true;
     }
 
     bool enable() override {
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrow_mutation) return false;
       if (handle_ != INVALID_HANDLE_VALUE && handle_ != nullptr) {
         return true;
@@ -46,7 +46,7 @@ namespace display_helper::v2 {
     }
 
     bool is_available() override {
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrow_mutation) return false;
       HANDLE h = SUDOVDA::OpenDevice(&SUDOVDA::SUVDA_INTERFACE_GUID);
       if (h == INVALID_HANDLE_VALUE || h == nullptr) {
@@ -122,7 +122,7 @@ namespace display_helper::v2 {
 
   private:
     void close_handle() {
-      auto borrow_mutation = display_helper::borrow::native_mutation_scope_t::enter(true);
+      auto borrow_mutation = ::display_helper::borrow::native_mutation_scope_t::enter(true);
       if (!borrow_mutation) return ;
       if (handle_ != INVALID_HANDLE_VALUE && handle_ != nullptr) {
         CloseHandle(handle_);
