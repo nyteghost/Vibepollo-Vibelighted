@@ -1022,6 +1022,14 @@ namespace platf {
   bool
     set_clipboard(const std::string &content);
 
+#if defined(__linux__)
+  /**
+   * @brief Name of the clipboard backend a Linux host selected ("klipper", "wl-clipboard", "xclip").
+   * @return The backend name, or an empty string when no clipboard tool is usable.
+   */
+  std::string clipboard_backend_name();
+#endif
+
   /**
    * @brief Factory for the platform-specific host stats provider.
    *
