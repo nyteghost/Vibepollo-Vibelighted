@@ -109,6 +109,7 @@
 #endif
 #include "display_helper_integration.h"
 #include "process.h"
+#include "two_factor.h"
 #include "utility.h"
 #include "uuid.h"
 
@@ -3000,7 +3001,7 @@ namespace confighttp {
       std::string virtual_display_layout = input_tree.value("virtual_display_layout", "");
       auto do_cmds = nvhttp::extract_command_entries(input_tree, "do");
       auto undo_cmds = nvhttp::extract_command_entries(input_tree, "undo");
-      auto perm = static_cast<crypto::PERM>(input_tree.value("perm", static_cast<uint32_t>(crypto::PERM::_no)) & static_cast<uint32_t>(crypto::PERM::_all));
+      auto perm = static_cast<crypto::PERM>(input_tree.value("perm", static_cast<uint32_t>(crypto::PERM::_no)) & static_cast<uint32_t>(crypto::PERM::_all_persisted));
       bool updated = nvhttp::update_device_info(
         uuid,
         name,
@@ -4719,6 +4720,94 @@ namespace confighttp {
   }
 #endif
 
+  /**
+   * @brief Two-factor status for the web console.
+   * @api_examples{/api/two-factor| GET| null}
+   */
+  void getTwoFactorStatus(resp_https_t response, req_https_t request) {
+    if (!authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+    const auto status = two_factor::status();
+    nlohmann::json out;
+    out["enabled"] = status.enabled;
+    out["setup_pending"] = status.setup_pending;
+    out["backup_codes_remaining"] = status.backup_codes_remaining;
+    send_response(response, out);
+  }
+
+  /**
+   * @brief Start two-factor enrolment; returns the secret and an otpauth:// URI for the QR code.
+   * @api_examples{/api/two-factor/setup| POST| {}}
+   */
+  void postTwoFactorSetup(resp_https_t response, req_https_t request) {
+    if (!check_content_type(response, request, "application/json") || !authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+    if (two_factor::enabled()) {
+      bad_request(response, request, "Two-factor is already on; turn it off first to set it up again");
+      return;
+    }
+    send_response(response, two_factor::begin_setup(config::nvhttp.sunshine_name));
+  }
+
+  /**
+   * @brief Confirm enrolment with one code; returns the one-time backup codes.
+   * @api_examples{/api/two-factor/enable| POST| {"code":"123456"}}
+   */
+  void postTwoFactorEnable(resp_https_t response, req_https_t request) {
+    if (!check_content_type(response, request, "application/json") || !authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+    std::stringstream ss;
+    ss << request->content.rdbuf();
+    try {
+      const nlohmann::json input = nlohmann::json::parse(ss);
+      auto codes = two_factor::confirm_setup(input.value("code", ""));
+      if (!codes) {
+        bad_request(response, request, "That code was not accepted. Check the clock on your phone and try again, or start the setup again.");
+        return;
+      }
+      BOOST_LOG(info) << "Two-factor is now required to connect"sv;
+      nlohmann::json out;
+      out["status"] = true;
+      out["backup_codes"] = *codes;
+      send_response(response, out);
+    } catch (std::exception &e) {
+      bad_request(response, request, e.what());
+    }
+  }
+
+  /**
+   * @brief Turn two-factor off; needs a current code or a backup code.
+   * @api_examples{/api/two-factor/disable| POST| {"code":"123456"}}
+   */
+  void postTwoFactorDisable(resp_https_t response, req_https_t request) {
+    if (!check_content_type(response, request, "application/json") || !authenticate(response, request)) {
+      return;
+    }
+    print_req(request);
+    std::stringstream ss;
+    ss << request->content.rdbuf();
+    try {
+      const nlohmann::json input = nlohmann::json::parse(ss);
+      const auto result = two_factor::disable(input.value("code", ""));
+      if (result != two_factor::result_e::ok) {
+        bad_request(response, request, two_factor::status_message(result));
+        return;
+      }
+      BOOST_LOG(info) << "Two-factor is now off"sv;
+      nlohmann::json out;
+      out["status"] = true;
+      send_response(response, out);
+    } catch (std::exception &e) {
+      bad_request(response, request, e.what());
+    }
+  }
+
 #if defined(__linux__)
   /**
    * @brief Explain whether the Linux virtual display can work (read-only, no privileges needed).
@@ -6286,6 +6375,7 @@ namespace confighttp {
   }
 
   void start() {
+    two_factor::set_state_path(platf::appdata() / "two_factor.json");
     platf::set_thread_name("confighttp");
     auto shutdown_event = mail::man->event<bool>(mail::shutdown);
     auto port_https = net::map_port(PORT_HTTPS);
@@ -6379,6 +6469,10 @@ namespace confighttp {
     register_api_route("^/api/pin$", "POST", savePin);
     register_api_route("^/api/otp$", "POST", getOTP);
     register_api_route("^/api/apps$", "GET", getApps);
+    register_api_route("^/api/two-factor$", "GET", getTwoFactorStatus);
+    register_api_route("^/api/two-factor/setup$", "POST", postTwoFactorSetup);
+    register_api_route("^/api/two-factor/enable$", "POST", postTwoFactorEnable);
+    register_api_route("^/api/two-factor/disable$", "POST", postTwoFactorDisable);
     register_api_route("^/api/logs$", "GET", getLogs);
 #if defined(__linux__)
     register_api_route("^/api/linux/display-health$", "GET", getLinuxDisplayHealth);
