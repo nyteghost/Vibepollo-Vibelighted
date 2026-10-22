@@ -725,7 +725,15 @@ jobs:
             "${vhf_gamepad_package_arg[@]}" \
             "${truehdr_runtime_arg[@]}"
           echo "::add-matcher::.github/matchers/gcc.json"
-          cmake --build build --target all --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
+          set +e
+          cmake --build build --target all --parallel "$CMAKE_BUILD_PARALLEL_LEVEL" 2>&1 | tee build-all.log
+          build_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$build_status" -ne 0 ]]; then
+            # Surface the first errors as annotations so they are visible without opening the log
+            grep -E "error:|#warning|FAILED:|undefined reference|fatal" build-all.log | head -15 | tr -d '\r' | sed 's/%/ /g; s/^/::error::/' || true
+            exit "$build_status"
+          fi
           echo "::remove-matcher owner=gcc::"
 
       - name: Test native AMF lifecycle behavior
