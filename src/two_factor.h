@@ -31,6 +31,7 @@ namespace two_factor {
     required,  ///< A code is needed and none was sent.
     invalid,  ///< The code was wrong, expired or already used.
     locked,  ///< Too many wrong codes recently; try again later.
+    unavailable,  ///< 2FA is on but its settings cannot be read; refuse rather than fail open.
   };
 
   // ---- Building blocks (public so they can be tested) ----

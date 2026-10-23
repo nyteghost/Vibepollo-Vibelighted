@@ -1602,6 +1602,12 @@ namespace confighttp {
       return;
     }
 
+    // The v2 UI is the default front door. "/?classic" keeps the classic UI reachable.
+    if (path_view == "/" && request->query_string.find("classic") == std::string::npos) {
+      send_redirect(std::move(response), std::move(request), "/v2/");
+      return;
+    }
+
     const bool is_v2_route = path_view == "/v2" || path_view.starts_with("/v2/");
     const bool is_v2_static_path = path_view == "/v2/assets" || path_view.starts_with("/v2/assets/") ||
                                    path_view == "/v2/images" || path_view.starts_with("/v2/images/");

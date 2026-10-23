@@ -7,8 +7,10 @@
 
 // standard includes
 #if defined(__linux__)
+  #include <fcntl.h>
   #include <unistd.h>
 #endif
+#include <cerrno>
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -6706,13 +6708,34 @@ launch_session->exact_target_hold.reset();
     }
 
     // Never overwrite: "name.ext", then "name (1).ext", "name (2).ext", ...
+    // On POSIX the name is claimed with an exclusive create (no symlink following), so two
+    // uploads racing for the same name cannot overwrite each other.
     const std::filesystem::path base_path {name};
     std::filesystem::path target = dir / base_path;
-    for (int n = 1; std::filesystem::exists(target, ec) && n < 1000; ++n) {
+    bool claimed = false;
+    for (int n = 1; n < 1000; ++n) {
+#if defined(__linux__)
+      const int fd = ::open(target.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0644);
+      if (fd >= 0) {
+        ::close(fd);
+        claimed = true;
+        break;
+      }
+      const bool taken = errno == EEXIST || errno == ELOOP;
+#else
+      const bool taken = std::filesystem::exists(target, ec);
+      if (!taken) {
+        claimed = true;
+        break;
+      }
+#endif
+      if (!taken) {
+        break;  // some other error (permissions, disk): stop and report below
+      }
       target = dir / (base_path.stem().string() + " (" + std::to_string(n) + ")" + base_path.extension().string());
     }
-    if (std::filesystem::exists(target, ec)) {
-      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: too many files named ["sv << name << "]"sv;
+    if (!claimed) {
+      BOOST_LOG(warning) << "[file] Upload by ["sv << verified_client->name << "] refused: could not create a file for ["sv << name << "] (too many with that name, or the folder is not writable)"sv;
       response->write(SimpleWeb::StatusCode::client_error_conflict);
       response->close_connection_after_response = true;
       return;
