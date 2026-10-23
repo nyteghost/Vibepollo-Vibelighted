@@ -179,6 +179,19 @@ export const useSystemStore = defineStore('system', () => {
     }
   }
 
+  // A session that expired while the page was open: re-check auth so the
+  // sign-in screen appears instead of every panel saying "Unauthorized".
+  let recheckingAuth = false;
+  window.addEventListener('vibebeam:unauthorized', () => {
+    if (recheckingAuth) return;
+    recheckingAuth = true;
+    void fetchAuthStatus()
+      .catch(() => undefined)
+      .finally(() => {
+        recheckingAuth = false;
+      });
+  });
+
   const media = window.matchMedia('(prefers-color-scheme: light)');
   media.addEventListener('change', () => {
     if (theme.value === 'auto') applyTheme();
