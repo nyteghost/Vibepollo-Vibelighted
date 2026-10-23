@@ -25,7 +25,6 @@ namespace two_factor {
     constexpr char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     constexpr int kStepSeconds = 30;
     constexpr int kMaxFailures = 5;
-    constexpr int kGlobalMaxFailures = 20;
     constexpr int kLockSeconds = 300;
     constexpr int kBackupCodeCount = 8;
     constexpr int kPendingSeconds = 600;
@@ -39,7 +38,6 @@ namespace two_factor {
       std::int64_t locked_until = 0;
     };
     std::map<std::string, limiter_t> g_limiters;
-    limiter_t g_global_limiter;
     std::map<std::string, std::int64_t> g_grace;
 
     struct pending_t {
@@ -50,6 +48,7 @@ namespace two_factor {
 
     struct state_t {
       bool enabled = false;
+      bool broken = false;  // the file exists but cannot be used: treat 2FA as on and refuse
       std::vector<std::uint8_t> secret;
       std::uint64_t last_step = 0;
       std::vector<std::string> backup_hashes;  // hex SHA-256
@@ -95,8 +94,13 @@ namespace two_factor {
       if (state_path().empty()) {
         return state;
       }
+      std::error_code exists_ec;
+      if (!std::filesystem::exists(state_path(), exists_ec)) {
+        return state;  // No file: 2FA is off.
+      }
       std::ifstream in(state_path(), std::ios::binary);
       if (!in) {
+        state.enabled = state.broken = true;  // Present but unreadable: fail closed.
         return state;
       }
       try {
@@ -105,7 +109,8 @@ namespace two_factor {
           return state;
         }
         if (!base32_decode(json.value("secret", ""), state.secret) || state.secret.size() < 16) {
-          return state;  // Unreadable secret: treated as not enabled; the owner can set it up again.
+          state.enabled = state.broken = true;
+          return state;
         }
         state.enabled = true;
         state.last_step = json.value("last_step", static_cast<std::uint64_t>(0));
@@ -118,6 +123,7 @@ namespace two_factor {
         }
       } catch (...) {
         state = {};
+        state.enabled = state.broken = true;  // Corrupt file: fail closed.
       }
       return state;
     }
@@ -217,9 +223,6 @@ namespace two_factor {
     }
 
     bool locked(const std::string &key, std::int64_t now) {
-      if (g_global_limiter.locked_until > now) {
-        return true;
-      }
       const auto it = g_limiters.find(key);
       return it != g_limiters.end() && it->second.locked_until > now;
     }
@@ -230,15 +233,10 @@ namespace two_factor {
         entry.failures = 0;
         entry.locked_until = now + kLockSeconds;
       }
-      if (++g_global_limiter.failures >= kGlobalMaxFailures) {
-        g_global_limiter.failures = 0;
-        g_global_limiter.locked_until = now + kLockSeconds;
-      }
     }
 
     void note_success(const std::string &key) {
       g_limiters.erase(key);
-      g_global_limiter.failures = 0;
     }
 
     std::string random_backup_code() {
@@ -335,6 +333,8 @@ namespace two_factor {
         return "Two-factor code was not accepted";
       case result_e::locked:
         return "Too many wrong two-factor codes; try again in a few minutes";
+      case result_e::unavailable:
+        return "Two-factor is on but its settings could not be read. Ask the host owner to check the host log";
       case result_e::ok:
         break;
     }
@@ -349,6 +349,8 @@ namespace two_factor {
         return 471;
       case result_e::locked:
         return 472;
+      case result_e::unavailable:
+        return 473;
       case result_e::ok:
         break;
     }
@@ -360,6 +362,9 @@ namespace two_factor {
     auto state = load_state();
     if (!state.enabled || exempt) {
       return result_e::ok;
+    }
+    if (state.broken) {
+      return result_e::unavailable;
     }
 
     const auto now = now_seconds();
@@ -448,6 +453,9 @@ namespace two_factor {
     if (!state.enabled) {
       return result_e::ok;
     }
+    if (state.broken) {
+      return result_e::unavailable;
+    }
     const auto now = now_seconds();
     if (locked("disable", now)) {
       return result_e::locked;
@@ -474,7 +482,6 @@ namespace two_factor {
   void reset_runtime_for_tests() {
     std::lock_guard lock {g_mutex};
     g_limiters.clear();
-    g_global_limiter = {};
     g_grace.clear();
     g_pending.reset();
   }

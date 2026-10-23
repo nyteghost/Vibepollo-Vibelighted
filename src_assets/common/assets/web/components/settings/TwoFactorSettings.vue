@@ -216,8 +216,8 @@ onMounted(load);
         <AppButton variant="secondary" @click="confirmingOff = false">Cancel</AppButton>
       </div>
       <p class="two-factor__hint">
-        Locked out? On the host run
-        <code>sudo rm /var/lib/vibepollo/two_factor.json</code> to turn this off.
+        Locked out? Delete <code>two_factor.json</code> from the host's config folder to turn this
+        off (Linux: <code>sudo rm /var/lib/vibepollo/two_factor.json</code>).
       </p>
     </template>
   </section>

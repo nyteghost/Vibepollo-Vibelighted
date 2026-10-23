@@ -152,3 +152,19 @@ TEST_F(TwoFactorTest, DisableWithBackupCode) {
   EXPECT_EQ(two_factor::disable(backups[3]), result_e::ok);
   EXPECT_FALSE(two_factor::enabled());
 }
+
+TEST_F(TwoFactorTest, CorruptSettingsFailClosed) {
+  std::uint64_t used = 0;
+  enable(used);
+  {
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out << "{not json";
+  }
+  EXPECT_TRUE(two_factor::enabled());
+  EXPECT_EQ(two_factor::check("phone", "", false), result_e::unavailable);
+  EXPECT_EQ(two_factor::check("phone", "123456", false), result_e::unavailable);
+  // Exempt clients are unaffected, and the owner can still reset by deleting the file.
+  EXPECT_EQ(two_factor::check("ios", "", true), result_e::ok);
+  std::filesystem::remove(path);
+  EXPECT_EQ(two_factor::check("phone", "", false), result_e::ok);
+}
